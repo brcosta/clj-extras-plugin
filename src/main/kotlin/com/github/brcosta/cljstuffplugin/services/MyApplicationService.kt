@@ -1,6 +1,6 @@
-package org.jetbrains.plugins.template.services
+package com.github.brcosta.cljstuffplugin.services
 
-import org.jetbrains.plugins.template.MyBundle
+import com.github.brcosta.cljstuffplugin.MyBundle
 
 class MyApplicationService {
 
