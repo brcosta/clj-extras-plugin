@@ -48,6 +48,15 @@ qodana {
     showReport.set(System.getenv("QODANA_SHOW_REPORT")?.toBoolean() ?: false)
 }
 
+tasks.withType(KotlinCompile::class).all {
+    kotlinOptions {
+        jvmTarget = "11"
+
+        // For creation of default methods in interfaces
+        freeCompilerArgs = listOf("-Xjvm-default=all")
+    }
+}
+
 tasks {
     // Set the JVM compatibility versions
     properties("javaVersion").let {
@@ -90,6 +99,11 @@ tasks {
         })
     }
 
+    runPluginVerifier {
+        ideVersions.set(properties("pluginVerifierIdeVersions").split(',').map(String::trim).filter(String::isNotEmpty))
+    }
+
+
     // Configure UI tests plugin
     // Read more: https://github.com/JetBrains/intellij-ui-test-robot
     runIdeForUiTests {
@@ -112,5 +126,9 @@ tasks {
         // Specify pre-release label to publish the plugin in a custom Release Channel automatically. Read more:
         // https://plugins.jetbrains.com/docs/intellij/deployment.html#specifying-a-release-channel
         channels.set(listOf(properties("pluginVersion").split('-').getOrElse(1) { "default" }.split('.').first()))
+    }
+
+    buildSearchableOptions {
+        enabled = false
     }
 }

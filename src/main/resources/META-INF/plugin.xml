@@ -1,18 +1,42 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
     <id>com.github.brcosta.cljstuffplugin</id>
-    <name>clj-stuff-plugin</name>
-    <vendor>brcosta</vendor>
+    <name>CLJ Stuff</name>
+    <vendor>Bruno Costa</vendor>
 
     <depends>com.intellij.modules.platform</depends>
+    <depends>com.cursiveclojure.cursive</depends>
+    <depends>com.intellij.java</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <applicationService serviceImplementation="com.github.brcosta.cljstuffplugin.services.MyApplicationService"/>
-        <projectService serviceImplementation="com.github.brcosta.cljstuffplugin.services.MyProjectService"/>
+
+        <annotator language="Clojure"
+                   implementationClass="com.github.brcosta.cljstuffplugin.extensions.SimpleAnnotator"/>
+
+        <statusBarWidgetFactory id="fileInfoWidget"
+                                implementation="com.github.brcosta.cljstuffplugin.extensions.FileInfoStatusBarWidgetFactory"
+                                order="after writeActionWidget"/>
+
+        <typedHandler implementation="com.github.brcosta.cljstuffplugin.extensions.MyTypedEditorHandler"/>
+
+        <enterHandlerDelegate implementation="com.github.brcosta.cljstuffplugin.extensions.MyEnterHandler"
+                              id="MyEnterHandler"/>
+
     </extensions>
 
-    <applicationListeners>
-        <listener class="com.github.brcosta.cljstuffplugin.listeners.MyProjectManagerListener"
-                  topic="com.intellij.openapi.project.ProjectManagerListener"/>
-    </applicationListeners>
+    <actions>
+
+        <action id="Clj.Stuff.EvaluateTopForm" class="com.github.brcosta.cljstuffplugin.actions.EvaluateTopFormAction"
+                text="Evaluate Top Form (Inline)"
+                description="Evaluate Top Form (Inline)">
+            <add-to-group group-id="ToolsMenu"/>
+        </action>
+
+        <action id="Clj.Stuff.EvaluatePrevForm" class="com.github.brcosta.cljstuffplugin.actions.EvaluatePrevFormAction"
+                text="Evaluate Previous Form (Inline)"
+                description="Evaluate Previous Form (Inline)">
+            <add-to-group group-id="ToolsMenu"/>
+        </action>
+
+    </actions>
 </idea-plugin>
