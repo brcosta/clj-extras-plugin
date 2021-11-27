@@ -2,7 +2,7 @@
 
 <!-- Plugin description -->
 
-Custom features added on top of Cursive (in a hackish way!):
+Custom features added on top of Cursive:
 
 - Inline form evaluation (finally!) 
 - An annotator for keyword/symbols namespaces (custom syntax highlighted namespaces ftw!)
