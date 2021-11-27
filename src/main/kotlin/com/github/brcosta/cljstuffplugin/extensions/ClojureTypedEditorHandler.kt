@@ -9,8 +9,7 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.psi.PsiFile
 import org.jetbrains.annotations.NotNull
 
-class MyTypedEditorHandler : TypedHandlerDelegate() {
-
+class ClojureTypedEditorHandler : TypedHandlerDelegate() {
     override fun charTyped(c: Char, project: Project, editor: Editor, file: PsiFile): Result {
         val runnable = Runnable { clearEditorInlays(editor) }
         WriteCommandAction.runWriteCommandAction(project, runnable)

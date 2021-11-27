@@ -11,16 +11,21 @@
     <extensions defaultExtensionNs="com.intellij">
 
         <annotator language="Clojure"
-                   implementationClass="com.github.brcosta.cljstuffplugin.extensions.SimpleAnnotator"/>
+                   implementationClass="com.github.brcosta.cljstuffplugin.extensions.ClojureAnnotator"/>
 
         <statusBarWidgetFactory id="fileInfoWidget"
                                 implementation="com.github.brcosta.cljstuffplugin.extensions.FileInfoStatusBarWidgetFactory"
                                 order="after writeActionWidget"/>
 
-        <typedHandler implementation="com.github.brcosta.cljstuffplugin.extensions.MyTypedEditorHandler"/>
+        <typedHandler implementation="com.github.brcosta.cljstuffplugin.extensions.ClojureTypedEditorHandler"/>
 
-        <enterHandlerDelegate implementation="com.github.brcosta.cljstuffplugin.extensions.MyEnterHandler"
+        <enterHandlerDelegate implementation="com.github.brcosta.cljstuffplugin.extensions.ClojureEnterHandler"
                               id="MyEnterHandler"/>
+
+        <colorSettingsPage implementation="com.github.brcosta.cljstuffplugin.extensions.ClojureColorsAndFontsPageEx"/>
+
+        <additionalTextAttributes file="colors/ClojureStuffDefaultColors.xml" scheme="Default"/>
+        <additionalTextAttributes file="colors/ClojureStuffDarculaColors.xml" scheme="Darcula"/>
 
     </extensions>
 

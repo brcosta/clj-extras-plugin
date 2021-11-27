@@ -11,7 +11,7 @@ import cursive.highlighter.ClojureSyntaxHighlighter
 import cursive.psi.api.ClKeyword
 
 @Suppress("unused", "UnstableApiUsage")
-class SimpleAnnotator : Annotator {
+class ClojureAnnotator : Annotator {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
         if (element.language != ClojureLanguage.getInstance()) {
             return
@@ -26,7 +26,7 @@ class SimpleAnnotator : Annotator {
                         val separatorRange = TextRange.from(prefixRange.endOffset, 1)
                         val keyRange = TextRange(separatorRange.endOffset, element.textRange.endOffset)
                         holder.newSilentAnnotation(HighlightSeverity.INFORMATION)
-                            .range(prefixRange).textAttributes(ClojureSyntaxHighlighter.RAINBOW_2)
+                            .range(prefixRange).textAttributes(ClojureColorsAndFontsPageEx.KEYWORD_NAMESPACE)
                             .create()
                         holder.newSilentAnnotation(HighlightSeverity.INFORMATION)
                             .range(separatorRange).textAttributes(ClojureSyntaxHighlighter.NUMBER).create()
@@ -44,13 +44,13 @@ class SimpleAnnotator : Annotator {
                 isNsReaderMacro(element) -> {
                     val range = TextRange.from(element.textRange.startOffset, element.text.length)
                     holder.newSilentAnnotation(HighlightSeverity.INFORMATION)
-                        .range(range).textAttributes(ClojureSyntaxHighlighter.RAINBOW_2)
+                        .range(range).textAttributes(ClojureColorsAndFontsPageEx.KEYWORD_NAMESPACE)
                         .create()
                 }
-                isReaderNamespacedKeyword(element) -> {
-                    val range = TextRange.from(element.textRange.startOffset, element.text.length)
+                isReaderNamespacedSymbol(element) -> {
+                        val range = TextRange.from(element.textRange.startOffset, element.text.length)
                     holder.newSilentAnnotation(HighlightSeverity.INFORMATION)
-                        .range(range).textAttributes(ClojureSyntaxHighlighter.RAINBOW_3)
+                        .range(range).textAttributes(ClojureColorsAndFontsPageEx.SYMBOL_NAMESPACE)
                         .create()
                 }
 
@@ -63,7 +63,7 @@ class SimpleAnnotator : Annotator {
     private fun isNsReaderMacro(element: PsiElement) =
         element.prevSibling != null && element.prevSibling.text == "#:"
 
-    private fun isReaderNamespacedKeyword(element: PsiElement) =
+    private fun isReaderNamespacedSymbol(element: PsiElement) =
         element.nextSibling != null && (element.nextSibling is LeafPsiElement) && (element.nextSibling as LeafPsiElement).elementType.debugName == "ns separator"
 
 }

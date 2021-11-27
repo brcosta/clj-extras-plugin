@@ -9,10 +9,11 @@ import com.intellij.openapi.editor.actionSystem.EditorActionHandler
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Ref
 import com.intellij.psi.PsiFile
+import cursive.ClojureLanguage
 import org.jetbrains.annotations.NotNull
 
 @Suppress("unused")
-class MyEnterHandler : EnterHandlerDelegateAdapter() {
+class ClojureEnterHandler : EnterHandlerDelegateAdapter() {
 
     override fun preprocessEnter(
         file: PsiFile,
@@ -22,7 +23,9 @@ class MyEnterHandler : EnterHandlerDelegateAdapter() {
         dataContext: DataContext,
         originalHandler: EditorActionHandler?
     ): EnterHandlerDelegate.Result {
-        clearEditorInlays(editor)
+        if (file.language == ClojureLanguage.getInstance()) {
+            clearEditorInlays(editor)
+        }
         return super.preprocessEnter(file, editor, caretOffset, caretAdvance, dataContext, originalHandler)
     }
 

@@ -18,6 +18,7 @@ import kotlin.reflect.KProperty
 
 /**
  * @author gregsh
+ * original src: https://github.com/gregsh/Clojure-Kit/blob/master/src/tools/nrepl-client.kt
  */
 private val LOG = Logger.getInstance(NReplClient::class.java)
 const val PING_TIMEOUT = 5_000L

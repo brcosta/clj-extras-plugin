@@ -28,31 +28,17 @@ import java.awt.*
 open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
     private val log = Logger.getInstance(AnAction::class.java)
 
-    override fun actionPerformed(e: AnActionEvent) {
-
-        val editor = e.getData(CommonDataKeys.EDITOR)
-
-        editor?.let {
-            clearEditorInlays(editor)
-            val caretOffset = editor.caretModel.currentCaret.offset
-
+    override fun actionPerformed(event: AnActionEvent) {
+        event.getData(CommonDataKeys.EDITOR)?.let {
+            clearEditorInlays(it)
+            (ApplicationManager.getApplication()).invokeAndWait { addInlineElement(it, "(*) Evaluating....") }
             (ApplicationManager.getApplication()).invokeLater {
-                it.inlayModel.addAfterLineEndElement(
-                    caretOffset, false, TextLabelCustomElementRenderer("⌛ Evaluating....")
-                )
-            }
-
-            (ApplicationManager.getApplication()).invokeLater {
-
-                val form = this.formFn.invoke(editor) as PsiElement?
-                clearEditorInlays(editor)
-
+                val form = this.formFn.invoke(it) as PsiElement?
+                clearEditorInlays(it)
                 if (form == null) {
-                    it.inlayModel.addAfterLineEndElement(
-                        caretOffset, false, TextLabelCustomElementRenderer("⛔ Couldn't recognize form")
-                    )
+                    addInlineElement(it, "(x) Could not find form")
                 } else {
-                    processForm(form, e, it, caretOffset, editor)
+                    processForm(form, it)
                 }
             }
         }
@@ -60,19 +46,11 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
 
     private fun processForm(
         form: PsiElement,
-        e: AnActionEvent,
-        it: Editor,
-        caretOffset: Int,
         editor: Editor
     ) {
-        log.info("Form: ${form.text}")
-        val stateAtom = ReplAction.replState(e.project)?.deref() as ILookup?
+        val stateAtom = ReplAction.replState(editor.project)?.deref() as ILookup?
         if (stateAtom == null) {
-            it.inlayModel.addAfterLineEndElement(
-                caretOffset,
-                false,
-                TextLabelCustomElementRenderer("⛔ Repl disconnected")
-            )
+            addInlineElement(editor, "(x) Repl disconnected")
         }
 
         val replState = (stateAtom?.valAt(Keyword.intern("repl-state")) as Atom?)?.deref() as ILookup?
@@ -83,11 +61,7 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
             val nrepl = NReplClient()
             nrepl.connect(host, port.toInt())
             if (!nrepl.isConnected) {
-                it.inlayModel.addAfterLineEndElement(
-                    caretOffset,
-                    false,
-                    TextLabelCustomElementRenderer("⛔ Couldn't connect to running session")
-                )
+                addInlineElement(editor, "(x) Couldn't connect to running session")
             } else {
                 val result = nrepl.eval(form.text).get()
                 clearEditorInlays(editor)
@@ -97,23 +71,24 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
                             val errorTokens = (result["err"] as String).split("\n")
                             val errorStr = if (errorTokens.size > 1) errorTokens[1] else "Error"
                             log.info("Error: $errorStr")
-                            it.inlayModel.addAfterLineEndElement(
-                                caretOffset, true, TextLabelCustomElementRenderer("⛔ $errorStr")
-                            )
+                            addInlineElement(editor, "(x) $errorStr")
                         }
                         else -> {
                             log.info("Error: ${result["value"]}")
-
-                            it.inlayModel.addAfterLineEndElement(
-                                caretOffset,
-                                true,
-                                TextLabelCustomElementRenderer("⇒ ${result["value"] as String}")
-                            )
+                            addInlineElement(editor, "=> ${result["value"] as String}")
                         }
                     }
                 }
             }
         }
+    }
+
+    private fun addInlineElement(editor: Editor, label: String) {
+        editor.inlayModel.addAfterLineEndElement(
+            editor.caretModel.offset,
+            false,
+            TextLabelCustomElementRenderer(label)
+        )
     }
 
     private fun clearEditorInlays(@NotNull editor: Editor) {
@@ -126,6 +101,7 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
 
     class TextLabelCustomElementRenderer(label: String) : EditorCustomElementRenderer {
         private val label: String
+
         override fun calcWidthInPixels(inlay: Inlay<*>): Int {
             val fontInfo: FontInfo = getFontInfo(inlay.editor)
             return fontInfo.fontMetrics().stringWidth(label)
@@ -133,23 +109,16 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
 
         override fun paint(inlay: Inlay<*>, g: Graphics, r: Rectangle, textAttributes: TextAttributes) {
             val editor: Editor = inlay.editor
+            val g2 = g as Graphics2D
+
             val attributes: TextAttributes = editor.colorsScheme.getAttributes(TEXT_ATTRIBUTES) ?: return
             val fgColor = attributes.foregroundColor ?: return
             val fontInfo: FontInfo = getFontInfo(editor)
             val ascent: Int = editor.ascent
-            val g2 = g as Graphics2D
 
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
             g2.color = attributes.backgroundColor ?: return
-            g2.fillRoundRect(
-                r.x,
-                r.y + 1,
-                calcWidthInPixels(inlay) + 10,
-                fontInfo.fontMetrics().height + 3,
-                16,
-                16
-            )
-
+            g2.fillRoundRect(r.x, r.y + 1, calcWidthInPixels(inlay) + 1, fontInfo.fontMetrics().height + 3, 16, 16)
             g2.font = Font(fontInfo.font.name, Font.ITALIC, 11)
             g2.color = fgColor
             g2.drawString(label, r.x + 2, r.y - 1 + ascent)
