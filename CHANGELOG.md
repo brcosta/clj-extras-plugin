@@ -1,5 +1,8 @@
 # clj-stuff-plugin Changelog
 
+## [Unreleased]
+- Bump version
+
 ## 0.0.7
 - Published to marketplace
 
