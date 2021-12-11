@@ -3,6 +3,11 @@
 ## [Unreleased]
 - Bump version
 
+## 0.1.0
+
+- Better nREPL session detection (multiple REPLs support)
+- Evaluate forms in the context of its namespace (current file)
+
 ## 0.0.9
 - Add support to Intellij IDEA 2021.3
 

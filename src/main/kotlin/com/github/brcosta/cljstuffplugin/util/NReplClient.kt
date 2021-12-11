@@ -37,7 +37,7 @@ class NReplClient {
 
     private fun pingImpl(session: String = mainSession) =
         try {
-            eval("42") { this.session = session }.get(PING_TIMEOUT, TimeUnit.MILLISECONDS)["value"] == "42"
+            eval("42", null) { this.session = session }.get(PING_TIMEOUT, TimeUnit.MILLISECONDS)["value"] == "42"
         } catch (e: Exception) {
             false
         }
@@ -49,16 +49,11 @@ class NReplClient {
     private var mainSession = ""
     private var defaultRequest: Request? = null
 
-    fun connect(host: String, port: Int) {
+    fun connect(host: String, port: Int, sessionId: String) {
         if (isConnected) throw IllegalStateException("Already connected")
         try {
             transport = AsyncTransport(SocketTransport(Socket(host, port))) { o -> runCallbacks(o) }
-            mainSession = if (mainSession != "" && pingImpl(mainSession)) mainSession else {
-                val l = request("ls-sessions").sendAndReceive()
-                LOG.info("Ls-sessions: $l")
-                @Suppress("UNCHECKED_CAST")
-                (l["sessions"] as ArrayList<String>)[0]
-            }
+            mainSession = sessionId
         } catch (e: Exception) {
             if (transport != NOT_CONNECTED) disconnect()
         }
@@ -84,8 +79,9 @@ class NReplClient {
     }
 
     inner class Request {
-        constructor(op: String) {
+        constructor(op: String, namespace: String?) {
             this.op = op
+            this.namespace = namespace
         }
 
         internal val map = HashMap<String, Any?>()
@@ -154,7 +150,7 @@ class NReplClient {
         r.stderr?.let { handler -> (m["err"] as? String)?.let { msg -> handler(msg) } }
         if (status.contains("need-input")) r.stdin?.let { handler ->
             handler { input ->
-                request("stdin") {
+                request("stdin", null) {
                     session = r.session
                     stdin = r.stdin
                     stdout = r.stdout
@@ -208,9 +204,9 @@ class NReplClient {
         }
     }
 
-    fun eval(code: String? = null, f: Request.() -> Unit = {}) = request("eval") { this.code = code; f(this) }.send()
+    fun eval(code: String? = null, namespace: String?, f: Request.() -> Unit = {}) = request("eval", namespace) { this.code = code; f(this) }.send()
 
-    private fun request(op: String, f: Request.() -> Unit = {}): Request = Request(op).apply {
+     private fun request(op: String, namespace: String?, f: Request.() -> Unit = {}): Request = Request(op, namespace).apply {
         f()
         if (session == null && mainSession != "") session = mainSession
     }

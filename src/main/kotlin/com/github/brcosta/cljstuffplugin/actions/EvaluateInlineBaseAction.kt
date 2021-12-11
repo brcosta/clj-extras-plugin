@@ -15,14 +15,22 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorCustomElementRenderer
 import com.intellij.openapi.editor.Inlay
 import com.intellij.openapi.editor.colors.EditorColorsScheme
+import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.impl.ComplementaryFontsRegistry
 import com.intellij.openapi.editor.impl.FontInfo
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.util.Disposer
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiManager
+import com.intellij.psi.PsiMethod
+import com.intellij.psi.PsiRecursiveElementVisitor
+import cursive.psi.ClojurePsiElement
+import cursive.psi.api.ClList
 import cursive.repl.actions.ReplAction
 import org.jetbrains.annotations.NotNull
+import org.jetbrains.uast.findContaining
 import java.awt.*
+
 
 @Suppress("UnstableApiUsage")
 open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
@@ -33,20 +41,20 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
             clearEditorInlays(it)
             (ApplicationManager.getApplication()).invokeAndWait { addInlineElement(it, "(*) Evaluating....") }
             (ApplicationManager.getApplication()).invokeLater {
-                val form = this.formFn.invoke(it) as PsiElement?
+                val form = this.formFn.invoke(it) as ClojurePsiElement?
                 clearEditorInlays(it)
                 if (form == null) {
                     addInlineElement(it, "(x) Could not find form")
                 } else {
-                    processForm(form, it)
+                    processForm(form, it as EditorEx)
                 }
             }
         }
     }
 
     private fun processForm(
-        form: PsiElement,
-        editor: Editor
+        form: ClojurePsiElement,
+        editor: EditorEx
     ) {
         val stateAtom = ReplAction.replState(editor.project)?.deref() as ILookup?
         if (stateAtom == null) {
@@ -56,14 +64,20 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
         val replState = (stateAtom?.valAt(Keyword.intern("repl-state")) as Atom?)?.deref() as ILookup?
         val host = replState?.valAt(Keyword.intern("host")) as String?
         val port = replState?.valAt(Keyword.intern("port")) as Long?
+        val project = editor.project
 
-        if (host != null && port != null) {
+        if (project != null && host != null && port != null) {
+
+            val namespace = form.ns.qualifiedName
+            val sessionId = (stateAtom?.valAt(Keyword.intern("session-id"))) as String
+
             val nrepl = NReplClient()
-            nrepl.connect(host, port.toInt())
+            nrepl.connect(host, port.toInt(), sessionId)
+
             if (!nrepl.isConnected) {
                 addInlineElement(editor, "(x) Couldn't connect to running session")
             } else {
-                val result = nrepl.eval(form.text).get()
+                    val result = nrepl.eval(form.text, namespace).get()
                 clearEditorInlays(editor)
                 if (nrepl.isConnected) {
                     when {
