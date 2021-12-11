@@ -2,9 +2,9 @@
 
 <!-- Plugin description -->
 
-Custom features added on top of Cursive:
+Custom features added on top of Cursive for Clojure Lovers:
 
-- Inline form evaluation (finally!) 
+- Inline code evaluation: evaluate forms directly in source view (see screenshots)! Just add a custom Keymap for Tools/Evaluate Inline actions menu
 - An annotator for keyword/symbols namespaces (custom syntax highlighted namespaces ftw!)
 - Status bar widget to display current file/namespace (great for zen mode, try it)
 
