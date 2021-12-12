@@ -10,7 +10,6 @@ import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.collections.ArrayList
@@ -21,7 +20,6 @@ import kotlin.reflect.KProperty
  * original src: https://github.com/gregsh/Clojure-Kit/blob/master/src/tools/nrepl-client.kt
  */
 private val LOG = Logger.getInstance(NReplClient::class.java)
-const val PING_TIMEOUT = 5_000L
 
 private object ClientID {
     private val id = AtomicLong(0)
@@ -34,13 +32,6 @@ class NReplClient {
 
     private var transport: Transport = NOT_CONNECTED
     val isConnected: Boolean get() = transport != NOT_CONNECTED
-
-    private fun pingImpl(session: String = mainSession) =
-        try {
-            eval("42", null) { this.session = session }.get(PING_TIMEOUT, TimeUnit.MILLISECONDS)["value"] == "42"
-        } catch (e: Exception) {
-            false
-        }
 
     private val nextId: Long by ClientID
     private val callbacks = ConcurrentHashMap<Long, Request>()
@@ -119,7 +110,6 @@ class NReplClient {
         }
 
         fun send() = send(this)
-        fun sendAndReceive() = send().get()!!
     }
 
     private fun send(r: Request): CompletableFuture<Map<String, Any?>> {
@@ -301,7 +291,7 @@ class BEncodeInput(stream: InputStream) {
             'i' -> readLong('e')
             'l' -> readList()
             'd' -> readMap()
-            else -> stream.unread(token.toInt()).let {
+            else -> stream.unread(token.code).let {
                 val bytes = readNetstringInner()
                 try {
                     String(bytes)
@@ -333,7 +323,7 @@ class BEncodeInput(stream: InputStream) {
             val b = readCh()
             if (b == delim) return result
             if (b == '-' && result == 0L && !negate) negate = true
-            else if (b >= '0' || b <= '9') result = result * 10 + (b - '0')
+            else if (b in '0'..'9') result = result * 10 + (b - '0')
             else throw IOException("Invalid long. Unexpected $b encountered.")
         }
     }
@@ -384,19 +374,19 @@ class BEncodeOutput(val _stream: OutputStream) {
     }
 
     private fun writeLong(o: Number) {
-        stream.write('i'.toInt())
+        stream.write('i'.code)
         stream.write(o.toString().toByteArray(Charsets.UTF_8))
-        stream.write('e'.toInt())
+        stream.write('e'.code)
     }
 
     private fun writeList(o: Iterable<*>) {
-        stream.write('l'.toInt())
+        stream.write('l'.code)
         o.forEach { write(it!!) }
-        stream.write('e'.toInt())
+        stream.write('e'.code)
     }
 
     private fun writeMap(o: Map<*, *>) {
-        stream.write('d'.toInt())
+        stream.write('d'.code)
         val sorted = ArrayList<Pair<Any, ByteArray>>(o.size).apply {
             o.keys.forEach {
                 add(Pair(it!!, it.toString().toByteArray(Charsets.UTF_8)))
@@ -404,12 +394,12 @@ class BEncodeOutput(val _stream: OutputStream) {
         }
         sorted.sortWith { p1, p2 -> compare(p1.second, p2.second) }
         sorted.forEach { p -> write(p.second); write(o[p.first]!!) }
-        stream.write('e'.toInt())
+        stream.write('e'.code)
     }
 
     private fun writeNetstringInner(o: ByteArray) {
         stream.write(o.size.toString().toByteArray(Charsets.UTF_8))
-        stream.write(':'.toInt())
+        stream.write(':'.code)
         stream.write(o)
     }
 
