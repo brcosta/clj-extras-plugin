@@ -7,6 +7,7 @@
 
 - Better nREPL session detection (multiple REPLs support)
 - Evaluate forms in the context of its namespace (current file)
+- Show evaluated results as syntax highlighted hints (pretty!)
 
 ## 0.0.9
 - Add support to Intellij IDEA 2021.3
