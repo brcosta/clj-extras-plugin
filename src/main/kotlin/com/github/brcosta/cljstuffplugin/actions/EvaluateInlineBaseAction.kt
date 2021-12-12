@@ -101,7 +101,7 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
     private fun addInlineElement(editor: Editor, text: String) {
         val document = EditorFactory.getInstance().createDocument(StringUtil.convertLineSeparators(text))
         val myInput = MyEditorComponent(
-            document, editor.project, ClojureFileType.getInstance(), isViewer = false, oneLineMode = false
+            document, editor.project, ClojureFileType.getInstance(), isViewer = true, oneLineMode = false
         )
         HintManager.getInstance().showInformationHint(editor, myInput)
     }
