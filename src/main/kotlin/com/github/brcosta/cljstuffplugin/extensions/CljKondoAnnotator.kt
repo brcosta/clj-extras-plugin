@@ -1,5 +1,7 @@
 package com.github.brcosta.cljstuffplugin.extensions
 
+import clojure.java.api.Clojure
+import clojure.lang.IFn
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
@@ -37,6 +39,12 @@ class CljKondoAnnotator :
     }
 
     override fun doAnnotate(collectedInfo: ExternalLintAnnotationInput): ExternalLintAnnotationResult<List<String>> {
+
+        val require: IFn = Clojure.`var`("clojure.core", "require")
+        require.invoke(Clojure.read("clj-kondo.core"))
+        val run: IFn = Clojure.`var`("clj-kondo.core", "run!")
+        // should not work without parameters but fails first with a not found error
+        run.invoke()
 
         val commandLine = GeneralCommandLine()
         val settings = AppSettingsState.instance

@@ -27,6 +27,10 @@ repositories {
     }
 }
 
+dependencies {
+    implementation("clj-kondo:clj-kondo:2021.12.19")
+}
+
 // Configure Gradle IntelliJ Plugin - read more: https://github.com/JetBrains/gradle-intellij-plugin
 intellij {
     pluginName.set(properties("pluginName"))
