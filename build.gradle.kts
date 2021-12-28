@@ -22,6 +22,9 @@ version = properties("pluginVersion")
 // Configure project's dependencies
 repositories {
     mavenCentral()
+    maven {
+        url = uri("https://clojars.org/repo")
+    }
 }
 
 // Configure Gradle IntelliJ Plugin - read more: https://github.com/JetBrains/gradle-intellij-plugin
@@ -51,7 +54,7 @@ qodana {
 tasks.withType(KotlinCompile::class).all {
     kotlinOptions {
         jvmTarget = "11"
-
+1
         // For creation of default methods in interfaces
         freeCompilerArgs = listOf("-Xjvm-default=all")
     }

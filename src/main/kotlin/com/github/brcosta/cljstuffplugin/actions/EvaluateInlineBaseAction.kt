@@ -28,17 +28,18 @@ import cursive.repl.actions.ReplAction
 import org.jetbrains.annotations.NotNull
 import java.awt.*
 
-
 @Suppress("UnstableApiUsage")
 open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
     private val log = Logger.getInstance(AnAction::class.java)
 
     override fun actionPerformed(event: AnActionEvent) {
+
         event.getData(CommonDataKeys.EDITOR)?.let {
             (ApplicationManager.getApplication()).invokeAndWait {
                 clearEditorInlays(it)
                 addInlineElement(it, "(*) Evaluating....")
             }
+
             (ApplicationManager.getApplication()).invokeLater {
                 val form = this.formFn.invoke(it) as ClojurePsiElement?
                 if (form == null) {
@@ -54,6 +55,7 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
     private fun processForm(
         form: ClojurePsiElement, editor: EditorEx
     ) {
+
         val stateAtom = ReplAction.replState(editor.project)?.deref() as ILookup?
         if (stateAtom == null) {
             addInlineElement(editor, "(x) Repl disconnected")
@@ -161,7 +163,7 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
                 val fontPreferences = colorsScheme.fontPreferences
                 val fontStyle = Font.ITALIC
                 return ComplementaryFontsRegistry.getFontAbleToDisplay(
-                    'a'.code, fontStyle, fontPreferences, FontInfo.getFontRenderContext(editor.contentComponent)
+                    'a'.toInt(), fontStyle, fontPreferences, FontInfo.getFontRenderContext(editor.contentComponent)
                 )
             }
         }

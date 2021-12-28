@@ -22,10 +22,18 @@
         <enterHandlerDelegate implementation="com.github.brcosta.cljstuffplugin.extensions.ClojureEnterHandler"
                               id="MyEnterHandler"/>
 
+        <externalAnnotator language="Clojure" implementationClass="com.github.brcosta.cljstuffplugin.extensions.CljKondoAnnotator" />
+
         <colorSettingsPage implementation="com.github.brcosta.cljstuffplugin.extensions.ClojureColorsAndFontsPageEx"/>
 
         <additionalTextAttributes file="colors/ClojureStuffDefaultColors.xml" scheme="Default"/>
         <additionalTextAttributes file="colors/ClojureStuffDarculaColors.xml" scheme="Darcula"/>
+
+        <applicationService serviceImplementation="com.github.brcosta.cljstuffplugin.util.AppSettingsState"/>
+
+        <applicationConfigurable parentId="tools" instance="com.github.brcosta.cljstuffplugin.util.AppSettingsConfigurable"
+                                 id="com.github.brcosta.cljstuffplugin.util.AppSettingsConfigurable"
+                                 displayName="CLJ-Stuff Settings"/>
 
     </extensions>
 

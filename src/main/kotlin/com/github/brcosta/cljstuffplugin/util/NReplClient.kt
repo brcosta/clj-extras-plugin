@@ -291,7 +291,7 @@ class BEncodeInput(stream: InputStream) {
             'i' -> readLong('e')
             'l' -> readList()
             'd' -> readMap()
-            else -> stream.unread(token.code).let {
+            else -> stream.unread(token.toInt()).let {
                 val bytes = readNetstringInner()
                 try {
                     String(bytes)
@@ -374,19 +374,19 @@ class BEncodeOutput(val _stream: OutputStream) {
     }
 
     private fun writeLong(o: Number) {
-        stream.write('i'.code)
+        stream.write('i'.toInt())
         stream.write(o.toString().toByteArray(Charsets.UTF_8))
-        stream.write('e'.code)
+        stream.write('e'.toInt())
     }
 
     private fun writeList(o: Iterable<*>) {
-        stream.write('l'.code)
+        stream.write('l'.toInt())
         o.forEach { write(it!!) }
-        stream.write('e'.code)
+        stream.write('e'.toInt())
     }
 
     private fun writeMap(o: Map<*, *>) {
-        stream.write('d'.code)
+        stream.write('d'.toInt())
         val sorted = ArrayList<Pair<Any, ByteArray>>(o.size).apply {
             o.keys.forEach {
                 add(Pair(it!!, it.toString().toByteArray(Charsets.UTF_8)))
@@ -394,12 +394,12 @@ class BEncodeOutput(val _stream: OutputStream) {
         }
         sorted.sortWith { p1, p2 -> compare(p1.second, p2.second) }
         sorted.forEach { p -> write(p.second); write(o[p.first]!!) }
-        stream.write('e'.code)
+        stream.write('e'.toInt())
     }
 
     private fun writeNetstringInner(o: ByteArray) {
         stream.write(o.size.toString().toByteArray(Charsets.UTF_8))
-        stream.write(':'.code)
+        stream.write(':'.toInt())
         stream.write(o)
     }
 

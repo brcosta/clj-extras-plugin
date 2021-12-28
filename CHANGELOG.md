@@ -1,7 +1,10 @@
 # clj-stuff-plugin Changelog
 
 ## [Unreleased]
-- Bump version
+
+## 0.3.0
+
+- Add support to clj-kondo inspections
 
 ## 0.1.0
 
