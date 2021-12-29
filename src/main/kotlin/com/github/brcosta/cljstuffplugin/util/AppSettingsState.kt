@@ -9,7 +9,7 @@ import com.intellij.util.xmlb.XmlSerializerUtil
 
 @State(name = "com.github.brcosta.cljstuffplugin.util.AppSettingsState", storages = [Storage("SdkSettingsPlugin.xml")])
 class AppSettingsState : PersistentStateComponent<AppSettingsState?> {
-    var cljkondoPath = "/usr/local/bin/clj-kondo"
+    var cljkondoPath = ""
     var cljkondoEnabled = true
 
     override fun getState(): AppSettingsState? {

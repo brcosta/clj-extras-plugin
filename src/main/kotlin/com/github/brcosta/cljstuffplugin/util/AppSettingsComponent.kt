@@ -14,7 +14,7 @@ class AppSettingsComponent {
 
     init {
         panel = FormBuilder.createFormBuilder()
-            .addLabeledComponent(JBLabel("Clj-kondo executable path: "), cljkondoPath, 1, false)
+            .addLabeledComponent(JBLabel("Clj-kondo executable path (leave empty to use built-in impl): "), cljkondoPath, 1, false)
             .addComponent(cljkondoEnabled, 1)
             .addComponentFillVertically(JPanel(), 0)
             .panel

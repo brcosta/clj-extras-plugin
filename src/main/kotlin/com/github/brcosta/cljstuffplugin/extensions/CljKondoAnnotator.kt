@@ -1,6 +1,8 @@
 package com.github.brcosta.cljstuffplugin.extensions
 
 import clojure.java.api.Clojure
+import clojure.lang.ClojureLoaderHolder
+import clojure.lang.DynamicClassLoader
 import clojure.lang.IFn
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -11,6 +13,7 @@ import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.execution.ExecutionException
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.*
+import com.intellij.ide.plugins.cl.PluginClassLoader
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.ExternalAnnotator
 import com.intellij.lang.annotation.HighlightSeverity
@@ -23,12 +26,19 @@ import com.intellij.psi.MultiplePsiFilesPerDocumentFileViewProvider
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
 import java.io.File
+import java.io.IOException
+import java.lang.reflect.Method
+import java.net.URL
 
-class CljKondoAnnotator :
-    ExternalAnnotator<ExternalLintAnnotationInput, ExternalLintAnnotationResult<List<String>>>() {
+@Suppress("UnstableApiUsage")
+class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, ExternalLintAnnotationResult<List<String>>>() {
 
-    private val mapper: ObjectMapper = ObjectMapper().registerKotlinModule()
-        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+    init {
+        initKondoDependencies()
+    }
+
+    private val mapper: ObjectMapper =
+        ObjectMapper().registerKotlinModule().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 
     override fun collectInformation(file: PsiFile): ExternalLintAnnotationInput? {
         return collectInformation(file, null)
@@ -40,20 +50,26 @@ class CljKondoAnnotator :
 
     override fun doAnnotate(collectedInfo: ExternalLintAnnotationInput): ExternalLintAnnotationResult<List<String>> {
 
-        val require: IFn = Clojure.`var`("clojure.core", "require")
-        require.invoke(Clojure.read("clj-kondo.core"))
-        val run: IFn = Clojure.`var`("clj-kondo.core", "run!")
-        // should not work without parameters but fails first with a not found error
-        run.invoke()
-
-        val commandLine = GeneralCommandLine()
         val settings = AppSettingsState.instance
         val cljkondoPath = settings.cljkondoPath
         val cljkondoEnabled = settings.cljkondoEnabled
 
-        if (!cljkondoEnabled or !FileUtil.exists(cljkondoPath)) {
-            return ExternalLintAnnotationResult(collectedInfo, emptyList())
+        return when {
+            !cljkondoEnabled -> ExternalLintAnnotationResult(collectedInfo, emptyList())
+            else -> {
+                when {
+                    FileUtil.exists(cljkondoPath) -> lintWithExecutableLinter(collectedInfo, cljkondoPath)
+                    else -> lintWithBuiltinLinter(collectedInfo)
+                }
+            }
         }
+
+    }
+
+    private fun lintWithExecutableLinter(
+        collectedInfo: ExternalLintAnnotationInput, cljkondoPath: String
+    ): ExternalLintAnnotationResult<List<String>> {
+        val commandLine = GeneralCommandLine()
 
         commandLine.workDirectory = File(collectedInfo.psiFile.project.basePath!!)
         commandLine.withExePath(cljkondoPath).withParameters(
@@ -61,7 +77,6 @@ class CljKondoAnnotator :
         )
 
         val process = commandLine.createProcess()
-
         val processHandler: OSProcessHandler =
             ColoredProcessHandler(process, commandLine.commandLineString, Charsets.UTF_8)
 
@@ -77,7 +92,6 @@ class CljKondoAnnotator :
         })
 
         processHandler.startNotify()
-
         if (processHandler.waitFor(60000)) {
             output.exitCode = process.exitValue()
         } else {
@@ -90,12 +104,36 @@ class CljKondoAnnotator :
         }
 
         return ExternalLintAnnotationResult(collectedInfo, arrayListOf(output.stdout))
+    }
 
+    private fun lintWithBuiltinLinter(collectedInfo: ExternalLintAnnotationInput): ExternalLintAnnotationResult<List<String>> {
+        val current = Thread.currentThread().contextClassLoader
+
+        try {
+            Thread.currentThread().contextClassLoader = ClojureLoaderHolder.loader.get()
+
+            val require: IFn = Clojure.`var`("clojure.core", "require")
+            require.invoke(Clojure.read("clj-kondo.core"))
+            require.invoke(Clojure.read("cheshire.core"))
+
+            val run: IFn = Clojure.`var`("clj-kondo.core", "run!")
+            val params =
+                Clojure.read("{:config {:output {:format :json}} :config-dir \"${collectedInfo.psiFile.project.basePath}/.clj-kondo\" :lint [\"${collectedInfo.psiFile.virtualFile.path}\"]}")
+            val findings = run.invoke(params)
+            val print = Clojure.`var`("cheshire.core", "generate-string")
+            val results = print.invoke(findings)
+
+            return ExternalLintAnnotationResult(collectedInfo, arrayListOf(results.toString()))
+
+        } catch (e: Exception) {
+            return ExternalLintAnnotationResult(collectedInfo, emptyList())
+        } finally {
+            Thread.currentThread().contextClassLoader = current
+        }
     }
 
     private fun collectInformation(
-        psiFile: PsiFile,
-        @Suppress("UNUSED_PARAMETER") editor: Editor?
+        psiFile: PsiFile, @Suppress("UNUSED_PARAMETER") editor: Editor?
     ): ExternalLintAnnotationInput? {
         if (psiFile.context != null) {
             return null
@@ -170,10 +208,33 @@ class CljKondoAnnotator :
         return offset
     }
 
+    private fun initKondoDependencies() {
+        File(
+            (CljKondoAnnotator::class.java.classLoader as PluginClassLoader).pluginDescriptor.pluginPath.toString() + "/lib"
+        ).listFiles().forEach { addURL(it.toURI().toURL()) }
+    }
+
+    private fun addURL(u: URL) {
+        val sysLoader = ClojureLoaderHolder.loader.get() as DynamicClassLoader
+        val urls: Array<URL> = sysLoader.urLs
+        for (i in urls.indices) {
+            if (urls[i].toString() == u.toString()) {
+                return
+            }
+        }
+        val sysclass: Class<*> = DynamicClassLoader::class.java
+        try {
+            val method: Method = sysclass.getDeclaredMethod("addURL", URL::class.java)
+            method.isAccessible = true
+            method.invoke(sysLoader, u)
+        } catch (t: Throwable) {
+            throw IOException("Error, could not add URL to system classloader")
+        }
+    }
+
 }
 
 class ExternalLintAnnotationInput(
     val psiFile: PsiFile
-)
 
 class ExternalLintAnnotationResult<T>(@Suppress("unused") val input: ExternalLintAnnotationInput, val result: T)
