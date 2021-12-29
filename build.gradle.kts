@@ -61,7 +61,6 @@ qodana {
 tasks.withType(KotlinCompile::class).all {
     kotlinOptions {
         jvmTarget = "11"
-1
         // For creation of default methods in interfaces
         freeCompilerArgs = listOf("-Xjvm-default=all")
     }

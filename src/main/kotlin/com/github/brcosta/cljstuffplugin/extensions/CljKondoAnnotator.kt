@@ -236,5 +236,6 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
 
 class ExternalLintAnnotationInput(
     val psiFile: PsiFile
+)
 
 class ExternalLintAnnotationResult<T>(@Suppress("unused") val input: ExternalLintAnnotationInput, val result: T)
