@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.github.brcosta.cljstuffplugin.util
 
 import com.intellij.openapi.diagnostic.Logger
@@ -50,7 +52,10 @@ class NReplClient {
         }
     }
 
-    private fun disconnect() {
+    fun disconnect() {
+        if (!isConnected) {
+            return
+        }
         try {
             defaultRequest = null
         } finally {
@@ -194,12 +199,18 @@ class NReplClient {
         }
     }
 
-    fun eval(code: String? = null, namespace: String?, f: Request.() -> Unit = {}) = request("eval", namespace) { this.code = code; f(this) }.send()
+    fun eval(code: String? = null, namespace: String?, f: Request.() -> Unit = {}) = request("eval", namespace) {
+        this.code = code
+        f(this)
+    }.send()
 
-     private fun request(op: String, namespace: String?, f: Request.() -> Unit = {}): Request = Request(op, namespace).apply {
-        f()
-        if (session == null && mainSession != "") session = mainSession
-    }
+    fun interrupt() = if (isConnected) request("interrupt", "") {}.send() else null
+
+    private fun request(op: String, namespace: String?, f: Request.() -> Unit = {}): Request =
+        Request(op, namespace).apply {
+            f()
+            if (session == null && mainSession != "") session = mainSession
+        }
 }
 
 abstract class Transport : Closeable {
@@ -227,7 +238,6 @@ class AsyncTransport(private val delegate: Transport, private val responseHandle
 
     val closed = AtomicReference<Throwable>()
     private val reader = threadPool.submit {
-        LOG.info("recv thread started")
         while (closed.get() == null) {
             val response = try {
                 delegate.recv()
@@ -244,7 +254,6 @@ class AsyncTransport(private val delegate: Transport, private val responseHandle
                 }
             }
         }
-        LOG.info("recv thread stopped")
     }
 
     override fun recv(timeout: Long) = throw IllegalStateException()
@@ -268,7 +277,12 @@ class SocketTransport(private val socket: Socket) : Transport() {
     private val output = BEncodeOutput(socket.outputStream)
 
     override fun recv(timeout: Long) = wrap { input.read() }
-    override fun send(message: Any) = wrap { synchronized(output) { output.write(message); output.stream.flush() } }
+    override fun send(message: Any) = wrap {
+        synchronized(output) {
+            output.write(message); output.stream.flush()
+        }
+    }
+
     override fun close() = socket.close()
 
     private fun <T> wrap(proc: () -> T): T = try {
@@ -291,7 +305,7 @@ class BEncodeInput(stream: InputStream) {
             'i' -> readLong('e')
             'l' -> readList()
             'd' -> readMap()
-            else -> stream.unread(token.code).let {
+            else -> stream.unread(token.toInt()).let {
                 val bytes = readNetstringInner()
                 try {
                     String(bytes)
@@ -374,19 +388,19 @@ class BEncodeOutput(val _stream: OutputStream) {
     }
 
     private fun writeLong(o: Number) {
-        stream.write('i'.code)
+        stream.write('i'.toInt())
         stream.write(o.toString().toByteArray(Charsets.UTF_8))
-        stream.write('e'.code)
+        stream.write('e'.toInt())
     }
 
     private fun writeList(o: Iterable<*>) {
-        stream.write('l'.code)
+        stream.write('l'.toInt())
         o.forEach { write(it!!) }
-        stream.write('e'.code)
+        stream.write('e'.toInt())
     }
 
     private fun writeMap(o: Map<*, *>) {
-        stream.write('d'.code)
+        stream.write('d'.toInt())
         val sorted = ArrayList<Pair<Any, ByteArray>>(o.size).apply {
             o.keys.forEach {
                 add(Pair(it!!, it.toString().toByteArray(Charsets.UTF_8)))
@@ -394,12 +408,12 @@ class BEncodeOutput(val _stream: OutputStream) {
         }
         sorted.sortWith { p1, p2 -> compare(p1.second, p2.second) }
         sorted.forEach { p -> write(p.second); write(o[p.first]!!) }
-        stream.write('e'.code)
+        stream.write('e'.toInt())
     }
 
     private fun writeNetstringInner(o: ByteArray) {
         stream.write(o.size.toString().toByteArray(Charsets.UTF_8))
-        stream.write(':'.code)
+        stream.write(':'.toInt())
         stream.write(o)
     }
 

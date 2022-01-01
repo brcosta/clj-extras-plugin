@@ -1,1 +1,1 @@
-rootProject.name = "clj-stuff-plugin"
+rootProject.name = "clj-extras-plugin"

@@ -14,7 +14,7 @@ import javax.swing.Icon
 class ClojureColorsAndFontsPageEx : ColorSettingsPage {
 
     override fun getDisplayName(): String {
-        return "Clojure Stuff"
+        return "Clojure Extras"
     }
 
     override fun getIcon(): Icon? {
