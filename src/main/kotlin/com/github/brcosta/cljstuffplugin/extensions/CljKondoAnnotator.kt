@@ -69,6 +69,7 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
     private fun lintWithExecutableLinter(
         collectedInfo: ExternalLintAnnotationInput, cljkondoPath: String
     ): ExternalLintAnnotationResult<List<String>> {
+
         val commandLine = GeneralCommandLine()
 
         commandLine.workDirectory = File(collectedInfo.psiFile.project.basePath!!)

@@ -1,10 +1,12 @@
-# clj-stuff-plugin Changelog
+# clojure-extras-plugin Changelog
 
 ## [Unreleased]
 
 ## 0.3.0
 
 - Add support to clj-kondo inspections
+- Evaluate forms asynchronously to avoid UI Freezes
+- Code cleanup
 
 ## 0.1.0
 

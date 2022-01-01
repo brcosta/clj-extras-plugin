@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.github.brcosta.cljstuffplugin.util
 
 import com.intellij.openapi.diagnostic.Logger
@@ -50,7 +52,10 @@ class NReplClient {
         }
     }
 
-    private fun disconnect() {
+    fun disconnect() {
+        if (!isConnected) {
+            return
+        }
         try {
             defaultRequest = null
         } finally {
@@ -194,12 +199,18 @@ class NReplClient {
         }
     }
 
-    fun eval(code: String? = null, namespace: String?, f: Request.() -> Unit = {}) = request("eval", namespace) { this.code = code; f(this) }.send()
+    fun eval(code: String? = null, namespace: String?, f: Request.() -> Unit = {}) = request("eval", namespace) {
+        this.code = code
+        f(this)
+    }.send()
 
-     private fun request(op: String, namespace: String?, f: Request.() -> Unit = {}): Request = Request(op, namespace).apply {
-        f()
-        if (session == null && mainSession != "") session = mainSession
-    }
+    fun interrupt() = if (isConnected) request("interrupt", "") {}.send() else null
+
+    private fun request(op: String, namespace: String?, f: Request.() -> Unit = {}): Request =
+        Request(op, namespace).apply {
+            f()
+            if (session == null && mainSession != "") session = mainSession
+        }
 }
 
 abstract class Transport : Closeable {
@@ -227,7 +238,6 @@ class AsyncTransport(private val delegate: Transport, private val responseHandle
 
     val closed = AtomicReference<Throwable>()
     private val reader = threadPool.submit {
-        LOG.info("recv thread started")
         while (closed.get() == null) {
             val response = try {
                 delegate.recv()
@@ -244,7 +254,6 @@ class AsyncTransport(private val delegate: Transport, private val responseHandle
                 }
             }
         }
-        LOG.info("recv thread stopped")
     }
 
     override fun recv(timeout: Long) = throw IllegalStateException()
@@ -268,7 +277,12 @@ class SocketTransport(private val socket: Socket) : Transport() {
     private val output = BEncodeOutput(socket.outputStream)
 
     override fun recv(timeout: Long) = wrap { input.read() }
-    override fun send(message: Any) = wrap { synchronized(output) { output.write(message); output.stream.flush() } }
+    override fun send(message: Any) = wrap {
+        synchronized(output) {
+            output.write(message); output.stream.flush()
+        }
+    }
+
     override fun close() = socket.close()
 
     private fun <T> wrap(proc: () -> T): T = try {

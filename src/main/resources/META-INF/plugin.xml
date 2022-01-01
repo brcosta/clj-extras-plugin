@@ -1,7 +1,7 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
     <id>com.github.brcosta.cljstuffplugin</id>
-    <name>CLJ Stuff</name>
+    <name>Clojure Extras</name>
     <vendor>Bruno Costa</vendor>
 
     <depends>com.intellij.modules.platform</depends>
@@ -17,11 +17,6 @@
                                 implementation="com.github.brcosta.cljstuffplugin.extensions.FileInfoStatusBarWidgetFactory"
                                 order="after writeActionWidget"/>
 
-        <typedHandler implementation="com.github.brcosta.cljstuffplugin.extensions.ClojureTypedEditorHandler"/>
-
-        <enterHandlerDelegate implementation="com.github.brcosta.cljstuffplugin.extensions.ClojureEnterHandler"
-                              id="MyEnterHandler"/>
-
         <externalAnnotator language="Clojure" implementationClass="com.github.brcosta.cljstuffplugin.extensions.CljKondoAnnotator" />
 
         <colorSettingsPage implementation="com.github.brcosta.cljstuffplugin.extensions.ClojureColorsAndFontsPageEx"/>
@@ -33,7 +28,7 @@
 
         <applicationConfigurable parentId="tools" instance="com.github.brcosta.cljstuffplugin.util.AppSettingsConfigurable"
                                  id="com.github.brcosta.cljstuffplugin.util.AppSettingsConfigurable"
-                                 displayName="CLJ-Stuff Settings"/>
+                                 displayName="Clojure Extras"/>
 
     </extensions>
 

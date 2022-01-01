@@ -41,6 +41,6 @@ class AppSettingsConfigurable : Configurable {
     }
 
     override fun getDisplayName(): String {
-        return "Clj-Stuff Settings"
+        return "Clojure Extras"
     }
 }
