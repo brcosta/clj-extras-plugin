@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## 0.4.0
+
+- Better clj-kondo integration performance
+
 ## 0.3.0
 
 - Add support to clj-kondo inspections
