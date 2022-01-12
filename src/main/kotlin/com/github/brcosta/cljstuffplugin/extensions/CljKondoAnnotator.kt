@@ -22,6 +22,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.io.FileUtil
+import com.intellij.openapi.util.io.FileUtilRt
 import com.intellij.psi.MultiplePsiFilesPerDocumentFileViewProvider
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
@@ -29,16 +30,34 @@ import java.io.File
 import java.io.IOException
 import java.lang.reflect.Method
 import java.net.URL
+import java.nio.file.Files
 
 @Suppress("UnstableApiUsage")
 class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, ExternalLintAnnotationResult<List<String>>>() {
 
-    init {
-        initKondoDependencies()
-    }
+    private val require: IFn
+    private val run: IFn
+    private val print: IFn
 
     private val mapper: ObjectMapper =
         ObjectMapper().registerKotlinModule().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+
+    init {
+        initKondoDependencies()
+        val current = Thread.currentThread().contextClassLoader
+
+        try {
+            Thread.currentThread().contextClassLoader = ClojureLoaderHolder.loader.get()
+            require = Clojure.`var`("clojure.core", "require")
+            require.invoke(Clojure.read("clj-kondo.core"))
+            require.invoke(Clojure.read("cheshire.core"))
+            run = Clojure.`var`("clj-kondo.core", "run!")
+            print = Clojure.`var`("cheshire.core", "generate-string")
+        } finally {
+            Thread.currentThread().contextClassLoader = current
+        }
+
+    }
 
     override fun collectInformation(file: PsiFile): ExternalLintAnnotationInput? {
         return collectInformation(file, null)
@@ -70,11 +89,18 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
         collectedInfo: ExternalLintAnnotationInput, cljkondoPath: String
     ): ExternalLintAnnotationResult<List<String>> {
 
+        val psiFile = collectedInfo.psiFile
         val commandLine = GeneralCommandLine()
 
-        commandLine.workDirectory = File(collectedInfo.psiFile.project.basePath!!)
+        val lintFile = getLintFile(psiFile) ?: return ExternalLintAnnotationResult(collectedInfo, emptyList())
+
+        val basePath = psiFile.project.basePath!!
+        val filePath = psiFile.virtualFile.path
+        val lintPath = lintFile.absolutePath
+
+        commandLine.workDirectory = File(basePath)
         commandLine.withExePath(cljkondoPath).withParameters(
-            "--lint", collectedInfo.psiFile.virtualFile.path, "--config", "{:output {:format :json}}"
+            "--lint", lintPath, "--config", "{:output {:format :json :filename \"$filePath\"}}"
         )
 
         val process = commandLine.createProcess()
@@ -93,7 +119,7 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
         })
 
         processHandler.startNotify()
-        if (processHandler.waitFor(60000)) {
+        if (processHandler.waitFor(30000)) {
             output.exitCode = process.exitValue()
         } else {
             processHandler.destroyProcess()
@@ -109,21 +135,22 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
 
     private fun lintWithBuiltinLinter(collectedInfo: ExternalLintAnnotationInput): ExternalLintAnnotationResult<List<String>> {
         val current = Thread.currentThread().contextClassLoader
+        val psiFile = collectedInfo.psiFile
 
         try {
+            val lintFile = getLintFile(psiFile) ?: return ExternalLintAnnotationResult(collectedInfo, emptyList())
             Thread.currentThread().contextClassLoader = ClojureLoaderHolder.loader.get()
 
-            val require: IFn = Clojure.`var`("clojure.core", "require")
-            require.invoke(Clojure.read("clj-kondo.core"))
-            require.invoke(Clojure.read("cheshire.core"))
+            val basePath = psiFile.project.basePath
+            val filePath = psiFile.virtualFile.path
+            val tempPath = lintFile.absolutePath
 
-            val run: IFn = Clojure.`var`("clj-kondo.core", "run!")
-            val params =
-                Clojure.read("{:config {:output {:format :json}} :config-dir \"${collectedInfo.psiFile.project.basePath}/.clj-kondo\" :lint [\"${collectedInfo.psiFile.virtualFile.path}\"]}")
-            val findings = run.invoke(params)
-            val print = Clojure.`var`("cheshire.core", "generate-string")
+            val config =
+                "{:config {:output {:format :json}} :config-dir \"$basePath/.clj-kondo\" :filename \"$filePath\" :lint [\"$tempPath\"]}"
+            val findings = run.invoke(Clojure.read(config))
             val results = print.invoke(findings)
 
+            lintFile.delete()
             return ExternalLintAnnotationResult(collectedInfo, arrayListOf(results.toString()))
 
         } catch (e: Exception) {
@@ -133,6 +160,17 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
         }
     }
 
+
+    // https://intellij-support.jetbrains.com/hc/en-us/community/posts/115000337510-Only-trigger-externalAnnotator-when-the-file-system-is-in-sync
+    private fun getLintFile(psiFile: PsiFile): File? {
+        val prefix = "clj_extras_clj_kondo_annotator"
+        val documentManager = PsiDocumentManager.getInstance(psiFile.project)
+        val document: Document = documentManager.getDocument(psiFile) ?: return null
+        val lintFile = FileUtilRt.createTempFile(prefix, System.currentTimeMillis().toString(), true)
+        Files.writeString(lintFile.toPath(), document.text)
+        return lintFile
+    }
+
     private fun collectInformation(
         psiFile: PsiFile, @Suppress("UNUSED_PARAMETER") editor: Editor?
     ): ExternalLintAnnotationInput? {
@@ -140,6 +178,7 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
             return null
         }
         val virtualFile = psiFile.virtualFile
+
         if (virtualFile == null || !virtualFile.isInLocalFileSystem) {
             return null
         }
@@ -210,6 +249,7 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
     }
 
     private fun initKondoDependencies() {
+        @Suppress("RECEIVER_NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
         File(
             (CljKondoAnnotator::class.java.classLoader as PluginClassLoader).pluginDescriptor.pluginPath.toString() + "/lib"
         ).listFiles().forEach { addURL(it.toURI().toURL()) }
@@ -223,9 +263,9 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
                 return
             }
         }
-        val sysclass: Class<*> = DynamicClassLoader::class.java
+        val sysClass: Class<*> = DynamicClassLoader::class.java
         try {
-            val method: Method = sysclass.getDeclaredMethod("addURL", URL::class.java)
+            val method: Method = sysClass.getDeclaredMethod("addURL", URL::class.java)
             method.isAccessible = true
             method.invoke(sysLoader, u)
         } catch (t: Throwable) {
