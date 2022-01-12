@@ -4,7 +4,7 @@
 
 ## 0.4.0
 
-- Better clj-kondo integration performance
+- Better clj-kondo integration performance (to make it even faster tune the AutoReparse Delay Option in Preferences > Code Editing)
 
 ## 0.3.0
 
