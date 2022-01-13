@@ -19,6 +19,7 @@ import com.intellij.lang.annotation.ExternalAnnotator
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.colors.CodeInsightColors
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.io.FileUtil
@@ -31,6 +32,7 @@ import java.io.IOException
 import java.lang.reflect.Method
 import java.net.URL
 import java.nio.file.Files
+import kotlin.math.max
 
 @Suppress("UnstableApiUsage")
 class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, ExternalLintAnnotationResult<List<String>>>() {
@@ -99,8 +101,9 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
         val lintPath = lintFile.absolutePath
 
         commandLine.workDirectory = File(basePath)
+        println(filePath)
         commandLine.withExePath(cljkondoPath).withParameters(
-            "--lint", lintPath, "--config", "{:output {:format :json :filename \"$filePath\"}}"
+            "--lint", lintPath, "--filename", filePath, "--lang", "cljs", "--config", "{:output {:format :json }}"
         )
 
         val process = commandLine.createProcess()
@@ -141,14 +144,16 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
             val lintFile = getLintFile(psiFile) ?: return ExternalLintAnnotationResult(collectedInfo, emptyList())
             Thread.currentThread().contextClassLoader = ClojureLoaderHolder.loader.get()
 
-            val basePath = psiFile.project.basePath
             val filePath = psiFile.virtualFile.path
             val tempPath = lintFile.absolutePath
 
+            println(filePath)
+
             val config =
-                "{:config {:output {:format :json}} :config-dir \"$basePath/.clj-kondo\" :filename \"$filePath\" :lint [\"$tempPath\"]}"
+                "{:config {:output {:format :json}} :filename \"$filePath\" :lint [\"$tempPath\"]}"
             val findings = run.invoke(Clojure.read(config))
             val results = print.invoke(findings)
+
 
             lintFile.delete()
             return ExternalLintAnnotationResult(collectedInfo, arrayListOf(results.toString()))
@@ -166,7 +171,10 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
         val prefix = "clj_extras_clj_kondo_annotator"
         val documentManager = PsiDocumentManager.getInstance(psiFile.project)
         val document: Document = documentManager.getDocument(psiFile) ?: return null
-        val lintFile = FileUtilRt.createTempFile(prefix, System.currentTimeMillis().toString(), true)
+        val lintFile = FileUtilRt.createTempFile(
+            prefix,
+            "${System.currentTimeMillis()}.${psiFile.virtualFile.extension}", true
+        )
         Files.writeString(lintFile.toPath(), document.text)
         return lintFile
     }
@@ -196,16 +204,26 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
 
             val documentManager = PsiDocumentManager.getInstance(file.project)
             val document: Document? = documentManager.getDocument(file)
+            val lines = document?.text?.lines()
 
             if (document != null) {
                 mapper.readValue(result, Diagnostics::class.java).findings.forEach {
-                    holder.newAnnotation(convertLevelToSeverity(it.level), "clj-kondo: ${it.message}").range(
-                        TextRange.create(
-                            calculateOffset(document, it.row, it.col), calculateOffset(document, it.endRow, it.endCol)
+                    val row = max(0, it.row - 1)
+                    val col = max(0, it.col - 1)
+                    val isExpr = lines!![row][col] == '('
+                    val endRow = if (isExpr) row else it.endRow - 1
+                    val endCol = if (isExpr) col + 1 else it.endCol - 1
+                    val annotation = holder.newAnnotation(convertLevelToSeverity(it.level), "clj-kondo: ${it.message}")
+                        .range(
+                            TextRange.create(
+                                calculateOffset(document, row, col),
+                                calculateOffset(document, endRow, endCol)
+                            )
                         )
-                    ).highlightType(
-                        convertLevelToHighlight(it.level)
-                    ).create()
+                    when (it.level) {
+                        "warning" -> annotation.textAttributes(CodeInsightColors.WEAK_WARNING_ATTRIBUTES).create()
+                        else -> annotation.highlightType(convertLevelToHighlight(it.level)).create()
+                    }
                 }
             }
         }
@@ -223,22 +241,20 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
     private fun convertLevelToHighlight(level: String): ProblemHighlightType {
         return when (level) {
             "error" -> ProblemHighlightType.GENERIC_ERROR_OR_WARNING
-            "warning" -> ProblemHighlightType.WARNING
+            "warning" -> ProblemHighlightType.WEAK_WARNING
             else -> ProblemHighlightType.INFORMATION
         }
     }
 
     private fun calculateOffset(document: Document, line: Int, column: Int): Int {
         var offset: Int
-        val adjustedLine = line - 1
-        val adjustedColumn = column - 1
-        if (0 <= adjustedLine && adjustedLine < document.lineCount) {
-            val lineStart = document.getLineStartOffset(adjustedLine)
-            val lineEnd = document.getLineEndOffset(adjustedLine)
+        if (0 <= line && line < document.lineCount) {
+            val lineStart = document.getLineStartOffset(line)
+            val lineEnd = document.getLineEndOffset(line)
             val docText = document.charsSequence
             offset = lineStart
             var col = 0
-            while (offset < lineEnd && col < adjustedColumn) {
+            while (offset < lineEnd && col < column) {
                 col += if (docText[offset] == '\t') 2 else 1
                 offset++
             }
