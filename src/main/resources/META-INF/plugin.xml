@@ -30,6 +30,9 @@
                                  id="com.github.brcosta.cljstuffplugin.util.AppSettingsConfigurable"
                                  displayName="Clojure Extras"/>
 
+        <postStartupActivity
+                implementation="com.github.brcosta.cljstuffplugin.extensions.CljKondoNotifier"/>
+
     </extensions>
 
     <actions>
@@ -37,6 +40,12 @@
         <action id="Clj.Stuff.EvaluateTopForm" class="com.github.brcosta.cljstuffplugin.actions.EvaluateTopFormAction"
                 text="Evaluate Top Form (Inline)"
                 description="Evaluate Top Form (Inline)">
+            <add-to-group group-id="ToolsMenu"/>
+        </action>
+
+        <action id="Clj.Stuff.LintClasspath" class="com.github.brcosta.cljstuffplugin.actions.AnalyzeClasspathAction"
+                text="Clj-kondo: Lint Classpath"
+                description="Clj-kondo: Lint Classpath">
             <add-to-group group-id="ToolsMenu"/>
         </action>
 
