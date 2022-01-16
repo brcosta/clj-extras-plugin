@@ -11,9 +11,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.editor.Document
-import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.editor.EditorFactory
+import com.intellij.openapi.editor.*
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.project.Project
@@ -22,15 +20,21 @@ import com.intellij.openapi.util.text.StringUtil
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.util.ConcurrencyUtil
+import com.intellij.util.ui.JBUI
 import cursive.file.ClojureFileType
 import cursive.psi.ClojurePsiElement
 import cursive.repl.actions.ReplAction
 import java.awt.Component
+import java.awt.Dimension
 import java.awt.Point
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
-import javax.swing.*
+import javax.swing.BoxLayout
+import javax.swing.JButton
+import javax.swing.JLabel
+import javax.swing.JPanel
+import kotlin.math.min
 
 
 open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
@@ -40,11 +44,9 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
     )
 
     override fun actionPerformed(event: AnActionEvent) {
-        println("START OF BASE ACTION  ${Thread.currentThread().name}")
         val editor = event.getData(CommonDataKeys.EDITOR) ?: return
 
         threadPool.submit {
-            println("START OF RUNNABLE THREAD  ${Thread.currentThread().name}")
 
             val form = ApplicationManager.getApplication()
                 .runReadAction(Computable { this.formFn.invoke(editor) as ClojurePsiElement? })
@@ -58,6 +60,7 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
                     .invokeLater { addInlineElement(editor, "(*) Evaluating....") { nrepl.interrupt()?.get(); } }
 
                 val result = processForm(form, editor as EditorEx, nrepl)
+
                 if (nrepl.isConnected) {
                     nrepl.disconnect()
                 }
@@ -66,9 +69,6 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
             }
 
         }
-
-        println("END OF BASE ACTION ${Thread.currentThread().name} ")
-
     }
 
 
@@ -96,19 +96,38 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
             nrepl.connect(host, port.toInt(), sessionId)
 
             if (!nrepl.isConnected) {
-                return "(x) Couldn'' connect to running session"
+                return "(x) Couldn't connect to running session"
             } else {
                 try {
-                    val result = nrepl.eval(text, namespace).get(30, TimeUnit.SECONDS)
+                    val result =
+                        nrepl.eval("$text", namespace).get(30, TimeUnit.SECONDS)
                     if (nrepl.isConnected) {
                         when {
                             result["err"] != null -> {
                                 val errorTokens = (result["err"] as String).split("\n").filter { it.isNotEmpty() }
                                 val errorStr = if (errorTokens.size > 1) errorTokens[1] else (errorTokens[0])
                                 log.info("Error: $errorStr")
+
                                 return "(x) $errorStr"
                             }
-                            result["value"] != null -> return "=> ${result["value"] as String}" //addInlineElement(editor, "=> ${result["value"] as String}")
+                            result["value"] != null -> {
+                                val current = Thread.currentThread().contextClassLoader
+
+                                return try {
+                                    var value = result["value"] as String
+                                    value = org.apache.commons.lang.StringEscapeUtils.unescapeJava(value).trim()
+                                   // value = value.substring(1, value.length - 2)
+                                    when {
+                                        value.lines().count() == 1 -> "=> $value"
+                                        else -> "=>\n$value"
+                                    }
+                                } catch (e: Exception) {
+                                    "=> ${result["value"] as String}"
+                                } finally {
+                                    Thread.currentThread().contextClassLoader = current
+                                }
+
+                            } //addInlineElement(editor, "=> ${result["value"] as String}")
                             else -> {
                                 if (result["status"] != null && (result["status"] as ArrayList<*>).size >= 3) {
                                     return "=> ${(result["status"] as ArrayList<*>)[0]}"
@@ -133,13 +152,28 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
 
             val document = EditorFactory.getInstance().createDocument(StringUtil.convertLineSeparators(text))
             val editorInput = ClojureEditorComponent(
-                document, editor.project, ClojureFileType.getInstance(), isViewer = true, oneLineMode = false
+                document,
+                editor.project,
+                ClojureFileType.getInstance(),
+                isViewer = true,
+                oneLineMode = false
             )
-            editorInput.border = BorderFactory.createEmptyBorder()
+
+            val font = editorInput.component.font
+            val lines = text.lines()
+            val linesCount = lines.count()
+            val width = editorInput.getFontMetrics(font)
+                .getStringBounds(lines.maxByOrNull { it.length }, editorInput.graphics).width
+            val height =
+                (editorInput.getFontMetrics(font).getStringBounds("W", editorInput.graphics).height + 5) * linesCount
+
+            editorInput.preferredSize =
+                Dimension(min(800, width.toInt() + 20), min(400, height.toInt()) + (if (linesCount == 1) 6 else 24))
+            editorInput.autoscrolls = true
+
             val panel = JPanel()
             panel.layout = BoxLayout(panel, BoxLayout.Y_AXIS)
-            panel.border = BorderFactory.createEmptyBorder()
-            panel.add(editorInput)
+            panel.add(editorInput.component)
 
             if (action != null) {
                 val btn = JButton("Stop")
@@ -168,6 +202,7 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
                 HintManager.getInstance().showInformationHint(editor, panel)
             }
 
+            editorInput.editor?.scrollingModel?.scrollTo(LogicalPosition(0, 0), ScrollType.CENTER_UP)
 
         }
     }
@@ -178,7 +213,11 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
 
         override fun createEditor(): EditorEx {
             val editor = super.createEditor()
+
             editor.settings.isUseSoftWraps = true
+            editor.setVerticalScrollbarVisible(true)
+            editor.setBorder(JBUI.Borders.empty(2))
+
             return editor
         }
     }

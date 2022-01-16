@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## 0.4.5
+
+- Bump clj-kondo version to 2022.01.13
+- Make warnings highlighting less intrusive
+- Fix error when the project doesn't have a .clj-kondo config folder
+- Fix error linting CLJS files
+
 ## 0.4.0
 
 - Better clj-kondo integration performance (to make it even faster tune the AutoReparse Delay Option in Preferences > Code Editing)
