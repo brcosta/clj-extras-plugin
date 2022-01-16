@@ -26,19 +26,21 @@ repositories {
 }
 
 dependencies {
-    implementation("clj-kondo:clj-kondo:2022.01.13") {
+    implementation("clj-kondo:clj-kondo:2022.01.15") {
         exclude("org.clojure", "clojure")
     }
 }
 
+// Useful to override another IC platforms from env
+val platformVersion = System.getenv("PLATFORM_VERSION") ?: properties("platformVersion")
+val platformPlugins = System.getenv("PLATFORM_PLUGINS") ?: properties("platformPlugins")
+
 // Configure Gradle IntelliJ Plugin - read more: https://github.com/JetBrains/gradle-intellij-plugin
 intellij {
     pluginName.set(properties("pluginName"))
-    version.set(properties("platformVersion"))
+    version.set(platformVersion)
     type.set(properties("platformType"))
-
-    // Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file.
-    plugins.set(properties("platformPlugins").split(',').map(String::trim).filter(String::isNotEmpty))
+    plugins.set(platformPlugins.split(',').map(String::trim).filter(String::isNotEmpty))
 }
 
 // Configure Gradle Changelog Plugin - read more: https://github.com/JetBrains/gradle-changelog-plugin

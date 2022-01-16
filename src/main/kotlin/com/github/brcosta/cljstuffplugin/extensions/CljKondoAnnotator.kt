@@ -101,7 +101,6 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
         val lintPath = lintFile.absolutePath
 
         commandLine.workDirectory = File(basePath)
-        println(filePath)
         commandLine.withExePath(cljkondoPath).withParameters(
             "--lint", lintPath, "--filename", filePath, "--lang", "cljs", "--config", "{:output {:format :json }}"
         )
@@ -147,13 +146,10 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
             val filePath = psiFile.virtualFile.path
             val tempPath = lintFile.absolutePath
 
-            println(filePath)
-
             val config =
                 "{:config {:output {:format :json}} :filename \"$filePath\" :lint [\"$tempPath\"]}"
             val findings = run.invoke(Clojure.read(config))
             val results = print.invoke(findings)
-
 
             lintFile.delete()
             return ExternalLintAnnotationResult(collectedInfo, arrayListOf(results.toString()))

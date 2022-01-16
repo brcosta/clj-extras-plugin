@@ -12,6 +12,7 @@ import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.collections.ArrayList
@@ -50,6 +51,7 @@ class NReplClient {
         } catch (e: Exception) {
             if (transport != NOT_CONNECTED) disconnect()
         }
+        this.eval("(defn extra-pprint [obj out opt] (clojure.pprint/pprint obj out))", "user").get(5, TimeUnit.SECONDS)
     }
 
     fun disconnect() {
@@ -107,6 +109,7 @@ class NReplClient {
             get() = get("code") as String?
             set(op) {
                 set("code", op)
+                set("nrepl.middleware.print/print", "user/extra-pprint")
             }
 
         operator fun get(prop: String) = map[prop]
