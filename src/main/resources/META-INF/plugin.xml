@@ -44,8 +44,8 @@
         </action>
 
         <action id="Clj.Stuff.LintClasspath" class="com.github.brcosta.cljstuffplugin.actions.AnalyzeClasspathAction"
-                text="Clj-kondo: Lint Classpath"
-                description="Clj-kondo: Lint Classpath">
+                text="Clj-kondo: Analyze Classpath"
+                description="Clj-kondo: Analyze classpath for better linting results">
             <add-to-group group-id="ToolsMenu"/>
         </action>
 

@@ -17,6 +17,7 @@ import com.intellij.ide.plugins.cl.PluginClassLoader
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.ExternalAnnotator
 import com.intellij.lang.annotation.HighlightSeverity
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.colors.CodeInsightColors
@@ -37,6 +38,8 @@ import kotlin.math.max
 @Suppress("UnstableApiUsage")
 class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, ExternalLintAnnotationResult<List<String>>>() {
 
+    private val log = Logger.getInstance(CljKondoAnnotator::class.java)
+
     private val require: IFn
     private val run: IFn
     private val print: IFn
@@ -49,12 +52,14 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
         val current = Thread.currentThread().contextClassLoader
 
         try {
+            log.info("Initializing built-in clj-kondo")
             Thread.currentThread().contextClassLoader = ClojureLoaderHolder.loader.get()
             require = Clojure.`var`("clojure.core", "require")
             require.invoke(Clojure.read("clj-kondo.core"))
             require.invoke(Clojure.read("cheshire.core"))
             run = Clojure.`var`("clj-kondo.core", "run!")
             print = Clojure.`var`("cheshire.core", "generate-string")
+            log.info("Built-in clj-kondo initialized")
         } finally {
             Thread.currentThread().contextClassLoader = current
         }
@@ -102,7 +107,7 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
 
         commandLine.workDirectory = File(basePath)
         commandLine.withExePath(cljkondoPath).withParameters(
-            "--lint", lintPath, "--filename", filePath, "--lang", "cljs", "--config", "{:output {:format :json }}"
+            "--lint", lintPath, "--filename", filePath, "--config", "{:output {:format :json }}"
         )
 
         val process = commandLine.createProcess()
@@ -155,6 +160,7 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
             return ExternalLintAnnotationResult(collectedInfo, arrayListOf(results.toString()))
 
         } catch (e: Exception) {
+            log.error("Error trying to annotate file", e)
             return ExternalLintAnnotationResult(collectedInfo, emptyList())
         } finally {
             Thread.currentThread().contextClassLoader = current
@@ -281,6 +287,7 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
             method.isAccessible = true
             method.invoke(sysLoader, u)
         } catch (t: Throwable) {
+            log.error("Error trying to load jar file", t)
             throw IOException("Error, could not add URL to system classloader")
         }
     }
