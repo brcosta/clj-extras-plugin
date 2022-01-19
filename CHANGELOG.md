@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## 0.5.0
+
+- Option do analyze the project classpath with clj-kondo for better linting results
+- Inline eval panel will now resize itself automatically based on content
+- Inline eval pretty printing (good for long maps)
+- Option to output stdout to REPL console
+- Bump clj-kondo version to 2022.01.15
+
 ## 0.4.5
 
 - Bump clj-kondo version to 2022.01.13

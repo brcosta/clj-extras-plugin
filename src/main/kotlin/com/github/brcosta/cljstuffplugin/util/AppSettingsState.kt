@@ -11,6 +11,8 @@ import com.intellij.util.xmlb.XmlSerializerUtil
 class AppSettingsState : PersistentStateComponent<AppSettingsState?> {
     var cljkondoPath = ""
     var cljkondoEnabled = true
+    var prettyPrint = true
+    var redirectStdoutToRepl = true
 
     override fun getState(): AppSettingsState? {
         return this
