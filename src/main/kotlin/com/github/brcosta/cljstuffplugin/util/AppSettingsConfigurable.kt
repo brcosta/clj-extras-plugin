@@ -19,6 +19,8 @@ class AppSettingsConfigurable : Configurable {
         val settings: AppSettingsState = AppSettingsState.instance
         var modified: Boolean = mySettingsComponent?.getCljkondoPath() != settings.cljkondoPath
         modified = modified or (mySettingsComponent?.getCljkondoEnabled() != settings.cljkondoEnabled)
+        modified = modified or (mySettingsComponent?.getPrettyPrint() != settings.prettyPrint)
+        modified = modified or (mySettingsComponent?.getRedirectStdoutToRepl() != settings.redirectStdoutToRepl)
         return modified
     }
 
@@ -27,6 +29,8 @@ class AppSettingsConfigurable : Configurable {
         mySettingsComponent?.let {
             settings.cljkondoPath = it.getCljkondoPath()
             settings.cljkondoEnabled = it.getCljkondoEnabled()
+            settings.prettyPrint = it.getPrettyPrint()
+            settings.redirectStdoutToRepl = it.getRedirectStdoutToRepl()
         }
     }
 
@@ -34,6 +38,8 @@ class AppSettingsConfigurable : Configurable {
         val settings: AppSettingsState = AppSettingsState.instance
         mySettingsComponent?.setCljkondoPath(settings.cljkondoPath)
         mySettingsComponent?.setCljkondoEnabled(settings.cljkondoEnabled)
+        mySettingsComponent?.setPrettyPrint(settings.prettyPrint)
+        mySettingsComponent?.setRedirectStdoutToRepl(settings.redirectStdoutToRepl)
     }
 
     override fun disposeUIResources() {

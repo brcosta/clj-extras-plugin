@@ -11,12 +11,21 @@ class AppSettingsComponent {
     val panel: JPanel
     private val cljkondoPath = JBTextField()
     private val cljkondoEnabled = JBCheckBox("Enable clj-kondo inspections")
+    private val prettyPrint = JBCheckBox("Pretty print inline evaluation results")
+    private val redirectStdoutToRepl = JBCheckBox("Redirect Stdout from inline evaluation to REPL console")
 
     init {
         panel = FormBuilder.createFormBuilder()
-            .addLabeledComponent(JBLabel("Clj-Kkndo executable path (leave empty to use built-in v.2022.01.15):"), cljkondoPath, 1, false)
-            .addComponent(cljkondoEnabled, 1)
-            .addComponentFillVertically(JPanel(), 0)
+            .addLabeledComponent(
+                JBLabel("Clj-Kondo executable path (leave empty to use built-in version 2022.01.15):"),
+                cljkondoPath,
+                1,
+                true
+            )
+            .addComponent(cljkondoEnabled, 2)
+            .addComponent(prettyPrint, 8)
+            .addComponent(redirectStdoutToRepl, 2)
+            .addComponentFillVertically(JPanel(), 4)
             .panel
     }
 
@@ -38,4 +47,21 @@ class AppSettingsComponent {
     fun setCljkondoEnabled(newStatus: Boolean) {
         cljkondoEnabled.isSelected = newStatus
     }
+
+    fun getPrettyPrint(): Boolean {
+        return prettyPrint.isSelected
+    }
+
+    fun setPrettyPrint(newStatus: Boolean) {
+        prettyPrint.isSelected = newStatus
+    }
+
+    fun getRedirectStdoutToRepl(): Boolean {
+        return redirectStdoutToRepl.isSelected
+    }
+
+    fun setRedirectStdoutToRepl(newStatus: Boolean) {
+        redirectStdoutToRepl.isSelected = newStatus
+    }
+
 }

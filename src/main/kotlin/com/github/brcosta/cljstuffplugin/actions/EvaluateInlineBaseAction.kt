@@ -4,6 +4,8 @@ import clojure.lang.Atom
 import clojure.lang.IFn
 import clojure.lang.ILookup
 import clojure.lang.Keyword
+import com.github.brcosta.cljstuffplugin.extensions.ClojureColorsAndFontsPageEx
+import com.github.brcosta.cljstuffplugin.util.AppSettingsState
 import com.github.brcosta.cljstuffplugin.util.NReplClient
 import com.intellij.codeInsight.hint.HintManager
 import com.intellij.openapi.actionSystem.AnAction
@@ -23,6 +25,7 @@ import com.intellij.util.ConcurrencyUtil
 import com.intellij.util.ui.JBUI
 import cursive.file.ClojureFileType
 import cursive.psi.ClojurePsiElement
+import cursive.repl.StyledOutputBuffer
 import cursive.repl.actions.ReplAction
 import java.awt.Component
 import java.awt.Dimension
@@ -76,7 +79,11 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
         form: ClojurePsiElement, editor: EditorEx, nrepl: NReplClient
     ): String? {
 
-        val stateAtom = ReplAction.replState(editor.project)?.deref() as ILookup? ?: return "(x) Repl disconnected"
+        val settings = AppSettingsState.instance
+        val prettyPrint = settings.prettyPrint
+        val redirectStdout = settings.redirectStdoutToRepl
+
+        val stateAtom = ReplAction.replState(editor.project)?.deref() as ILookup? ?: return "(x) Repl is not connected"
 
         val replState = (stateAtom.valAt(Keyword.intern("repl-state")) as Atom?)?.deref() as ILookup?
         val host = replState?.valAt(Keyword.intern("host")) as String?
@@ -99,8 +106,10 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
                 return "(x) Couldn't connect to running session"
             } else {
                 try {
+                    setupPrettyPrint(prettyPrint, nrepl)
                     val result =
-                        nrepl.eval("$text", namespace).get(30, TimeUnit.SECONDS)
+                        nrepl.eval(text, namespace, prettyPrint).get(30, TimeUnit.SECONDS)
+
                     if (nrepl.isConnected) {
                         when {
                             result["err"] != null -> {
@@ -116,7 +125,13 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
                                 return try {
                                     var value = result["value"] as String
                                     value = org.apache.commons.lang.StringEscapeUtils.unescapeJava(value).trim()
-                                   // value = value.substring(1, value.length - 2)
+
+                                    if (redirectStdout && result["out"] != null) {
+                                        val outputBuffer =
+                                            (stateAtom.valAt(Keyword.intern("output-buffer"))) as StyledOutputBuffer
+                                        outputBuffer.print(result["out"] as String, null)
+                                    }
+
                                     when {
                                         value.lines().count() == 1 -> "=> $value"
                                         else -> "=>\n$value"
@@ -127,7 +142,7 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
                                     Thread.currentThread().contextClassLoader = current
                                 }
 
-                            } //addInlineElement(editor, "=> ${result["value"] as String}")
+                            }
                             else -> {
                                 if (result["status"] != null && (result["status"] as ArrayList<*>).size >= 3) {
                                     return "=> ${(result["status"] as ArrayList<*>)[0]}"
@@ -145,6 +160,15 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
             }
         }
         return null
+    }
+
+    private fun setupPrettyPrint(prettyPrint: Boolean, nrepl: NReplClient) {
+        when {
+            prettyPrint -> nrepl.eval(
+                "(defn extra-pprint [obj out opt] (clojure.pprint/pprint obj out))",
+                "user"
+            ).get(5, TimeUnit.SECONDS)
+        }
     }
 
     private fun addInlineElement(editor: Editor, text: String?, action: Runnable? = null) {

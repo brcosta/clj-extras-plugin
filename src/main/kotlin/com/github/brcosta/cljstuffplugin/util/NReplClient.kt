@@ -51,7 +51,6 @@ class NReplClient {
         } catch (e: Exception) {
             if (transport != NOT_CONNECTED) disconnect()
         }
-        this.eval("(defn extra-pprint [obj out opt] (clojure.pprint/pprint obj out))", "user").get(5, TimeUnit.SECONDS)
     }
 
     fun disconnect() {
@@ -77,9 +76,10 @@ class NReplClient {
     }
 
     inner class Request {
-        constructor(op: String, namespace: String?) {
+        constructor(op: String, namespace: String?, prettyPrint: Boolean = false) {
             this.op = op
             this.namespace = namespace
+            this.prettyPrint = prettyPrint
         }
 
         internal val map = HashMap<String, Any?>()
@@ -87,6 +87,7 @@ class NReplClient {
         var stdout: ((String) -> Unit)? = null
         var stderr: ((String) -> Unit)? = null
         var stdin: (((String) -> Unit) -> Unit)? = null
+        private var prettyPrint: Boolean
 
         private var op: String?
             get() = get("op") as? String
@@ -109,7 +110,9 @@ class NReplClient {
             get() = get("code") as String?
             set(op) {
                 set("code", op)
-                set("nrepl.middleware.print/print", "user/extra-pprint")
+                if (prettyPrint) {
+                    set("nrepl.middleware.print/print", "user/extra-pprint")
+                }
             }
 
         operator fun get(prop: String) = map[prop]
@@ -202,15 +205,21 @@ class NReplClient {
         }
     }
 
-    fun eval(code: String? = null, namespace: String?, f: Request.() -> Unit = {}) = request("eval", namespace) {
-        this.code = code
-        f(this)
-    }.send()
+    fun eval(code: String? = null, namespace: String?, prettyPrint: Boolean = false, f: Request.() -> Unit = {}) =
+        request("eval", namespace, prettyPrint) {
+            this.code = code
+            f(this)
+        }.send()
 
     fun interrupt() = if (isConnected) request("interrupt", "") {}.send() else null
 
-    private fun request(op: String, namespace: String?, f: Request.() -> Unit = {}): Request =
-        Request(op, namespace).apply {
+    private fun request(
+        op: String,
+        namespace: String?,
+        prettyPrint: Boolean = false,
+        f: Request.() -> Unit = {}
+    ): Request =
+        Request(op, namespace, prettyPrint).apply {
             f()
             if (session == null && mainSession != "") session = mainSession
         }
