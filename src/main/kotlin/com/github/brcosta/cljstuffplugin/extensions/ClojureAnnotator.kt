@@ -23,15 +23,9 @@ class ClojureAnnotator : Annotator {
                     val startOffset = element.textRange.startOffset
                     if (element.text?.contains("/") == true) {
                         val prefixRange = TextRange.from(startOffset, element.namespace.length + 1)
-                        val separatorRange = TextRange.from(prefixRange.endOffset, 1)
-                        val keyRange = TextRange(separatorRange.endOffset, element.textRange.endOffset)
                         holder.newSilentAnnotation(HighlightSeverity.INFORMATION)
                             .range(prefixRange).textAttributes(ClojureColorsAndFontsPageEx.KEYWORD_NAMESPACE)
                             .create()
-                        holder.newSilentAnnotation(HighlightSeverity.INFORMATION)
-                            .range(separatorRange).textAttributes(ClojureSyntaxHighlighter.NUMBER).create()
-                        holder.newSilentAnnotation(HighlightSeverity.INFORMATION)
-                            .range(keyRange).textAttributes(ClojureSyntaxHighlighter.KEYWORD).create()
                     } else {
                         val range = TextRange.from(startOffset, element.text.length)
                         val qualifiedName = element.qualifiedName
@@ -48,7 +42,7 @@ class ClojureAnnotator : Annotator {
                         .create()
                 }
                 isReaderNamespacedSymbol(element) -> {
-                        val range = TextRange.from(element.textRange.startOffset, element.text.length)
+                    val range = TextRange.from(element.textRange.startOffset, element.text.length)
                     holder.newSilentAnnotation(HighlightSeverity.INFORMATION)
                         .range(range).textAttributes(ClojureColorsAndFontsPageEx.SYMBOL_NAMESPACE)
                         .create()
