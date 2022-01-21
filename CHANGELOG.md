@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## 0.5.1
+
+- Support to Ansi colors on stdout
+- Streamlined namespace highlighter
+
 ## 0.5.0
 
 - Option do analyze the project classpath with clj-kondo for better linting results
