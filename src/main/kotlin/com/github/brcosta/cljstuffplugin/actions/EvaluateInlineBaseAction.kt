@@ -1,5 +1,6 @@
 package com.github.brcosta.cljstuffplugin.actions
 
+import clojure.java.api.Clojure
 import clojure.lang.Atom
 import clojure.lang.IFn
 import clojure.lang.ILookup
@@ -25,8 +26,11 @@ import com.intellij.util.ConcurrencyUtil
 import com.intellij.util.ui.JBUI
 import cursive.file.ClojureFileType
 import cursive.psi.ClojurePsiElement
+import cursive.repl.Printing
 import cursive.repl.StyledOutputBuffer
+import cursive.repl.`print$ansi_output`
 import cursive.repl.actions.ReplAction
+import cursive.utils.AnsiProcessor
 import java.awt.Component
 import java.awt.Dimension
 import java.awt.Point
@@ -127,9 +131,7 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
                                     value = org.apache.commons.lang.StringEscapeUtils.unescapeJava(value).trim()
 
                                     if (redirectStdout && result["out"] != null) {
-                                        val outputBuffer =
-                                            (stateAtom.valAt(Keyword.intern("output-buffer"))) as StyledOutputBuffer
-                                        outputBuffer.print(result["out"] as String, null)
+                                        printOutput(stateAtom, editor, result)
                                     }
 
                                     when {
@@ -160,6 +162,24 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
             }
         }
         return null
+    }
+
+    private fun printOutput(
+        stateAtom: ILookup,
+        editor: EditorEx,
+        result: Map<String, Any?>
+    ) {
+        try {
+            `print$ansi_output`.invokeStatic(
+                ReplAction.replState(editor.project),
+                result["out"],
+                Clojure.read(":output-attributes")
+            )
+        } catch (e: Exception) {
+            val outputBuffer =
+                (stateAtom.valAt(Keyword.intern("output-buffer"))) as StyledOutputBuffer
+            outputBuffer.print(result["out"] as String, null)
+        }
     }
 
     private fun setupPrettyPrint(prettyPrint: Boolean, nrepl: NReplClient) {
