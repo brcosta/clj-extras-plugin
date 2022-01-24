@@ -1,4 +1,4 @@
-package com.github.brcosta.cljstuffplugin.util.kondo
+package com.github.brcosta.cljstuffplugin.cljkondo
 
 import com.fasterxml.jackson.annotation.JsonProperty
 

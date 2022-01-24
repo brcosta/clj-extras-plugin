@@ -1,19 +1,15 @@
 package com.github.brcosta.cljstuffplugin.extensions
 
 import clojure.java.api.Clojure
-import clojure.lang.ClojureLoaderHolder
-import clojure.lang.DynamicClassLoader
 import clojure.lang.IFn
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import com.github.brcosta.cljstuffplugin.cljkondo.*
 import com.github.brcosta.cljstuffplugin.util.AppSettingsState
-import com.github.brcosta.cljstuffplugin.util.kondo.Diagnostics
+import com.github.brcosta.cljstuffplugin.util.runWithClojureClassloader
 import com.intellij.codeInspection.ProblemHighlightType
-import com.intellij.execution.ExecutionException
-import com.intellij.execution.configurations.GeneralCommandLine
-import com.intellij.execution.process.*
-import com.intellij.ide.plugins.cl.PluginClassLoader
+import com.intellij.lang.annotation.AnnotationBuilder
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.ExternalAnnotator
 import com.intellij.lang.annotation.HighlightSeverity
@@ -21,17 +17,14 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.colors.CodeInsightColors
-import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.util.io.FileUtilRt
+import com.intellij.openapi.util.text.StringUtil
 import com.intellij.psi.MultiplePsiFilesPerDocumentFileViewProvider
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
 import java.io.File
-import java.io.IOException
-import java.lang.reflect.Method
-import java.net.URL
 import java.nio.file.Files
 import kotlin.math.max
 
@@ -40,30 +33,18 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
 
     private val log = Logger.getInstance(CljKondoAnnotator::class.java)
 
-    private val require: IFn
-    private val run: IFn
-    private val print: IFn
+    private lateinit var run: IFn
+    private lateinit var print: IFn
 
     private val mapper: ObjectMapper =
         ObjectMapper().registerKotlinModule().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 
     init {
-        initKondoDependencies()
-        val current = Thread.currentThread().contextClassLoader
-
-        try {
-            log.info("Initializing built-in clj-kondo")
-            Thread.currentThread().contextClassLoader = ClojureLoaderHolder.loader.get()
-            require = Clojure.`var`("clojure.core", "require")
-            require.invoke(Clojure.read("clj-kondo.core"))
-            require.invoke(Clojure.read("cheshire.core"))
-            run = Clojure.`var`("clj-kondo.core", "run!")
-            print = Clojure.`var`("cheshire.core", "generate-string")
-            log.info("Built-in clj-kondo initialized")
-        } finally {
-            Thread.currentThread().contextClassLoader = current
+        initKondo()
+        runWithClojureClassloader {
+            run = getCljKondoRun()
+            print = getCheshirePrint()
         }
-
     }
 
     override fun collectInformation(file: PsiFile): ExternalLintAnnotationInput? {
@@ -97,79 +78,55 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
     ): ExternalLintAnnotationResult<List<String>> {
 
         val psiFile = collectedInfo.psiFile
-        val commandLine = GeneralCommandLine()
+        val lintFile = getTempLintFile(psiFile) ?: return ExternalLintAnnotationResult(collectedInfo, emptyList())
 
-        val lintFile = getLintFile(psiFile) ?: return ExternalLintAnnotationResult(collectedInfo, emptyList())
+        val command = CljKondoProcessBuilder()
+            .workDirectory(psiFile.project.basePath!!)
+            .withExePath(cljkondoPath)
+            .withLintFile(lintFile.absolutePath)
+            .withFilename(StringUtil.escapeBackSlashes(psiFile.virtualFile.path))
+            .withConfig("{:output {:format :json }}")
+            .build()
 
-        val basePath = psiFile.project.basePath!!
-        val filePath = psiFile.virtualFile.path
-        val lintPath = lintFile.absolutePath
-
-        commandLine.workDirectory = File(basePath)
-        commandLine.withExePath(cljkondoPath).withParameters(
-            "--lint", lintPath, "--filename", filePath, "--config", "{:output {:format :json }}"
-        )
-
-        val process = commandLine.createProcess()
-        val processHandler: OSProcessHandler =
-            ColoredProcessHandler(process, commandLine.commandLineString, Charsets.UTF_8)
-
-        val output = ProcessOutput()
-        processHandler.addProcessListener(object : ProcessAdapter() {
-            override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
-                if (outputType == ProcessOutputTypes.STDERR) {
-                    output.appendStderr(event.text)
-                } else if (outputType != ProcessOutputTypes.SYSTEM) {
-                    output.appendStdout(event.text)
-                }
-            }
-        })
-
-        processHandler.startNotify()
-        if (processHandler.waitFor(30000)) {
-            output.exitCode = process.exitValue()
-        } else {
-            processHandler.destroyProcess()
-            output.setTimeout()
-        }
-
-        if (output.isTimeout) {
-            throw ExecutionException("Command '" + commandLine.commandLineString + "' is timed out.")
-        }
+        val output = CljKondoProcessRunner()
+            .withCommandLine(command.first)
+            .withProcess(command.second)
+            .withTimeout(5000)
+            .run()
 
         return ExternalLintAnnotationResult(collectedInfo, arrayListOf(output.stdout))
     }
 
     private fun lintWithBuiltinLinter(collectedInfo: ExternalLintAnnotationInput): ExternalLintAnnotationResult<List<String>> {
-        val current = Thread.currentThread().contextClassLoader
         val psiFile = collectedInfo.psiFile
 
         try {
-            val lintFile = getLintFile(psiFile) ?: return ExternalLintAnnotationResult(collectedInfo, emptyList())
-            Thread.currentThread().contextClassLoader = ClojureLoaderHolder.loader.get()
+            val lintFile = getTempLintFile(psiFile) ?: return ExternalLintAnnotationResult(collectedInfo, emptyList())
 
-            val filePath = psiFile.virtualFile.path
-            val tempPath = lintFile.absolutePath
+            val results = runWithClojureClassloader {
+                val filePath = psiFile.virtualFile.path
+                val tempPath = lintFile.absolutePath
 
-            val config =
-                "{:config {:output {:format :json}} :filename \"$filePath\" :lint [\"$tempPath\"]}"
-            val findings = run.invoke(Clojure.read(config))
-            val results = print.invoke(findings)
+                val config =
+                    "{:config {:output {:format :json}} :filename \"$filePath\" :lint [\"$tempPath\"]}"
+                val findings = run.invoke(Clojure.read(config))
+                val results = print.invoke(findings)
 
-            lintFile.delete()
+                lintFile.delete()
+                results
+            }
+
             return ExternalLintAnnotationResult(collectedInfo, arrayListOf(results.toString()))
 
         } catch (e: Exception) {
             log.error("Error trying to annotate file", e)
             return ExternalLintAnnotationResult(collectedInfo, emptyList())
-        } finally {
-            Thread.currentThread().contextClassLoader = current
         }
     }
 
 
     // https://intellij-support.jetbrains.com/hc/en-us/community/posts/115000337510-Only-trigger-externalAnnotator-when-the-file-system-is-in-sync
-    private fun getLintFile(psiFile: PsiFile): File? {
+    private fun getTempLintFile(psiFile: PsiFile): File? {
         val prefix = "clj_extras_clj_kondo_annotator"
         val documentManager = PsiDocumentManager.getInstance(psiFile.project)
         val document: Document = documentManager.getDocument(psiFile) ?: return null
@@ -177,7 +134,7 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
             prefix,
             "${System.currentTimeMillis()}.${psiFile.virtualFile.extension}", true
         )
-        Files.writeString(lintFile.toPath(), document.text)
+        Files.writeString(lintFile.toPath(), document.charsSequence)
         return lintFile
     }
 
@@ -206,30 +163,48 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
 
             val documentManager = PsiDocumentManager.getInstance(file.project)
             val document: Document? = documentManager.getDocument(file)
-            val lines = document?.text?.lines()
+            val lines = document?.charsSequence?.lines()
 
-            if (document != null) {
+            if (document != null && lines != null) {
                 mapper.readValue(result, Diagnostics::class.java).findings.forEach {
-                    val row = max(0, it.row - 1)
-                    val col = max(0, it.col - 1)
-                    val isExpr = lines!![row][col] == '('
-                    val endRow = if (isExpr) row else it.endRow - 1
-                    val endCol = if (isExpr) col + 1 else it.endCol - 1
-                    val annotation = holder.newAnnotation(convertLevelToSeverity(it.level), "clj-kondo: ${it.message}")
-                        .range(
-                            TextRange.create(
-                                calculateOffset(document, row, col),
-                                calculateOffset(document, endRow, endCol)
-                            )
-                        )
-                    when (it.level) {
-                        "warning" -> annotation.textAttributes(CodeInsightColors.WEAK_WARNING_ATTRIBUTES).create()
-                        else -> annotation.highlightType(convertLevelToHighlight(it.level)).create()
-                    }
+                    makeAnnotationBuilder(it, holder, document, lines).create()
                 }
             }
         }
         super.apply(file, annotationResult, holder)
+    }
+
+    private fun makeAnnotationBuilder(
+        finding: Finding,
+        holder: AnnotationHolder,
+        document: Document,
+        lines: List<String>
+    ): AnnotationBuilder {
+        val severity = convertLevelToSeverity(finding.level)
+        val message = "clj-kondo: ${finding.message}"
+        val textRange = calculateTextRange(document, lines, finding)
+        val annotation = holder.newAnnotation(severity, message).range(textRange)
+        return when (finding.level) {
+            "warning" -> annotation.textAttributes(CodeInsightColors.WEAK_WARNING_ATTRIBUTES)
+            else -> annotation.highlightType(convertLevelToHighlight(finding.level))
+        }
+    }
+
+    private fun calculateTextRange(
+        document: Document,
+        lines: List<String>,
+        finding: Finding,
+    ): TextRange {
+        val row = max(0, finding.row - 1)
+        val col = max(0, finding.col - 1)
+        val isExpr = lines[row][col] == '('
+        val endRow = if (isExpr) row else finding.endRow - 1
+        val endCol = if (isExpr) col + 1 else finding.endCol - 1
+
+        return TextRange.create(
+            calculateOffset(document, row, col),
+            calculateOffset(document, endRow, endCol)
+        )
     }
 
     private fun convertLevelToSeverity(level: String): HighlightSeverity {
@@ -264,32 +239,6 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
             offset = document.textLength
         }
         return offset
-    }
-
-    private fun initKondoDependencies() {
-        @Suppress("RECEIVER_NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
-        File(
-            (CljKondoAnnotator::class.java.classLoader as PluginClassLoader).pluginDescriptor.pluginPath.toString() + "/lib"
-        ).listFiles().forEach { addURL(it.toURI().toURL()) }
-    }
-
-    private fun addURL(u: URL) {
-        val sysLoader = ClojureLoaderHolder.loader.get() as DynamicClassLoader
-        val urls: Array<URL> = sysLoader.urLs
-        for (i in urls.indices) {
-            if (urls[i].toString() == u.toString()) {
-                return
-            }
-        }
-        val sysClass: Class<*> = DynamicClassLoader::class.java
-        try {
-            val method: Method = sysClass.getDeclaredMethod("addURL", URL::class.java)
-            method.isAccessible = true
-            method.invoke(sysLoader, u)
-        } catch (t: Throwable) {
-            log.error("Error trying to load jar file", t)
-            throw IOException("Error, could not add URL to system classloader")
-        }
     }
 
 }

@@ -5,7 +5,6 @@ import clojure.lang.Atom
 import clojure.lang.IFn
 import clojure.lang.ILookup
 import clojure.lang.Keyword
-import com.github.brcosta.cljstuffplugin.extensions.ClojureColorsAndFontsPageEx
 import com.github.brcosta.cljstuffplugin.util.AppSettingsState
 import com.github.brcosta.cljstuffplugin.util.NReplClient
 import com.intellij.codeInsight.hint.HintManager
@@ -26,11 +25,9 @@ import com.intellij.util.ConcurrencyUtil
 import com.intellij.util.ui.JBUI
 import cursive.file.ClojureFileType
 import cursive.psi.ClojurePsiElement
-import cursive.repl.Printing
 import cursive.repl.StyledOutputBuffer
 import cursive.repl.`print$ansi_output`
 import cursive.repl.actions.ReplAction
-import cursive.utils.AnsiProcessor
 import java.awt.Component
 import java.awt.Dimension
 import java.awt.Point
