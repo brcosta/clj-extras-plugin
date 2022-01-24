@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## 0.5.2
+- Fix namespaced keywords highlighting bugs
+- Fix built-in linting on windows
+
 ## 0.5.1
 
 - Support to Ansi colors on stdout
