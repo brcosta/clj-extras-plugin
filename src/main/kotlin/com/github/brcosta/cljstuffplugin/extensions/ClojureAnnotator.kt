@@ -64,7 +64,6 @@ class ClojureAnnotator : Annotator {
                 }
             }
         } catch (e: Exception) {
-            println(e)
             // should not happen
         }
     }

@@ -35,6 +35,7 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
 
     private lateinit var run: IFn
     private lateinit var print: IFn
+    private val separators = " )".toCharArray()
 
     private val mapper: ObjectMapper =
         ObjectMapper().registerKotlinModule().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
@@ -74,7 +75,7 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
     }
 
     private fun lintWithExecutableLinter(
-        collectedInfo: ExternalLintAnnotationInput, cljkondoPath: String
+        collectedInfo: ExternalLintAnnotationInput, cljkondoPath: String,
     ): ExternalLintAnnotationResult<List<String>> {
 
         val psiFile = collectedInfo.psiFile
@@ -104,8 +105,8 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
             val lintFile = getTempLintFile(psiFile) ?: return ExternalLintAnnotationResult(collectedInfo, emptyList())
 
             val results = runWithClojureClassloader {
-                val filePath = psiFile.virtualFile.path
-                val tempPath = lintFile.absolutePath
+                val filePath = StringUtil.escapeBackSlashes(psiFile.virtualFile.path)
+                val tempPath = StringUtil.escapeBackSlashes(lintFile.absolutePath)
 
                 val config =
                     "{:config {:output {:format :json}} :filename \"$filePath\" :lint [\"$tempPath\"]}"
@@ -139,7 +140,7 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
     }
 
     private fun collectInformation(
-        psiFile: PsiFile, @Suppress("UNUSED_PARAMETER") editor: Editor?
+        psiFile: PsiFile, @Suppress("UNUSED_PARAMETER") editor: Editor?,
     ): ExternalLintAnnotationInput? {
         if (psiFile.context != null) {
             return null
@@ -156,7 +157,7 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
     }
 
     override fun apply(
-        file: PsiFile, annotationResult: ExternalLintAnnotationResult<List<String>>?, holder: AnnotationHolder
+        file: PsiFile, annotationResult: ExternalLintAnnotationResult<List<String>>?, holder: AnnotationHolder,
     ) {
         if (annotationResult?.result != null && annotationResult.result.isNotEmpty()) {
             val result = annotationResult.result.first()
@@ -174,19 +175,28 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
         super.apply(file, annotationResult, holder)
     }
 
+    private fun bla(param: String){
+
+    }
     private fun makeAnnotationBuilder(
         finding: Finding,
         holder: AnnotationHolder,
         document: Document,
-        lines: List<String>
+        lines: List<String>,
     ): AnnotationBuilder {
         val severity = convertLevelToSeverity(finding.level)
         val message = "clj-kondo: ${finding.message}"
         val textRange = calculateTextRange(document, lines, finding)
         val annotation = holder.newAnnotation(severity, message).range(textRange)
-        return when (finding.level) {
-            "warning" -> annotation.textAttributes(CodeInsightColors.WEAK_WARNING_ATTRIBUTES)
-            else -> annotation.highlightType(convertLevelToHighlight(finding.level))
+
+        return when (finding.type) {
+            "unused-binding", "unused-import", "unused-namespace" -> {
+                annotation.textAttributes(CodeInsightColors.NOT_USED_ELEMENT_ATTRIBUTES)
+            }
+            else -> when (finding.level) {
+                "warning" -> annotation.textAttributes(CodeInsightColors.WEAK_WARNING_ATTRIBUTES)
+                else -> annotation.highlightType(convertLevelToHighlight(finding.level))
+            }
         }
     }
 
@@ -196,13 +206,16 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
         finding: Finding,
     ): TextRange {
         val row = max(0, finding.row - 1)
+        val line = lines[row]
         val col = max(0, finding.col - 1)
-        val isExpr = lines[row][col] == '('
+        val isExpr = line[col] == '('
+
+        val nextToken = line.substring(col).indexOfAny(separators)
         val endRow = if (isExpr) row else finding.endRow - 1
-        val endCol = if (isExpr) col + 1 else finding.endCol - 1
+        val endCol = if (isExpr) col + max(1, nextToken) else finding.endCol - 1
 
         return TextRange.create(
-            calculateOffset(document, row, col),
+            calculateOffset(document, row, if (isExpr) col + 1 else col),
             calculateOffset(document, endRow, endCol)
         )
     }
@@ -244,7 +257,7 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
 }
 
 class ExternalLintAnnotationInput(
-    val psiFile: PsiFile
+    val psiFile: PsiFile,
 )
 
 class ExternalLintAnnotationResult<T>(@Suppress("unused") val input: ExternalLintAnnotationInput, val result: T)

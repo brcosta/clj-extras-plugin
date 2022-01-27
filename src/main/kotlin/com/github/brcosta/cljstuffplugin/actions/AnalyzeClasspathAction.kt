@@ -16,6 +16,7 @@ import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.OrderEnumerator
 import com.intellij.openapi.util.io.FileUtil
+import com.intellij.openapi.util.text.StringUtil
 import java.io.File
 
 open class AnalyzeClasspathAction : AnAction() {
@@ -57,17 +58,25 @@ open class AnalyzeClasspathAction : AnAction() {
                         val pathsList =
                             OrderEnumerator.orderEntries(project).recursively().librariesOnly().pathsList
 
+                        val basePath = StringUtil.escapeBackSlashes(project.basePath!!)
                         indicator.text = "Analyzing project sources..."
-                        run.invoke(Clojure.read("{:config {:output {:format :json}} :copy-configs true :dependencies true :lint [\"${project.basePath}\"]}"))
+                        run.invoke(Clojure.read("{:config {:output {:format :json}} :copy-configs true :dependencies true :lint [\"$basePath\"]}"))
 
                         indicator.isIndeterminate = false
+
+                        val configDir = "${basePath}${File.separatorChar}.clj-kondo"
+
                         pathsList.virtualFiles.forEachIndexed { index, file ->
                             if (!indicator.isCanceled) {
                                 log.info("built-in clj-kondo: Linting classpath file: ${file.path}")
+
+                                val filePath = StringUtil.unescapeBackSlashes(file.path)
                                 val config =
-                                    "{:copy-configs true :dependencies true :filename \"${project.basePath}\" :lint [\"${file.path}\"]}"
+                                    "{:config-dir \"${configDir}\" :copy-configs true :dependencies true :lint [\"$filePath\"]}"
+
                                 indicator.text = "Analyzing '${file.path}'..."
                                 indicator.fraction = index.toDouble() / pathsList.virtualFiles.size
+
                                 run.invoke(Clojure.read(config))
                             }
                         }
@@ -83,6 +92,7 @@ open class AnalyzeClasspathAction : AnAction() {
             .run(object : Task.Backgroundable(project, "Clj-kondo: Analyze project classpath") {
                 override fun run(indicator: ProgressIndicator) {
                     val pathsList = OrderEnumerator.orderEntries(project).recursively().librariesOnly().pathsList
+
                     indicator.text = "Analyzing project sources..."
                     commandLineLint(project.basePath!!, project.basePath!!, cljkondoPath)
 
@@ -94,6 +104,7 @@ open class AnalyzeClasspathAction : AnAction() {
                             commandLineLint(project.basePath!!, file.path, cljkondoPath)
                         }
                     }
+
                 }
             })
     }

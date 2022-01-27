@@ -27,7 +27,10 @@ class CljKondoProcessRunner {
                     addProcessListener(object : ProcessAdapter() {
                         override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) =
                             when (outputType) {
-                                ProcessOutputTypes.STDERR -> output.appendStderr(event.text)
+                                ProcessOutputTypes.STDERR -> {
+                                    output.appendStderr(event.text)
+                                    log.error(event.text)
+                                }
                                 ProcessOutputTypes.STDOUT -> output.appendStdout(event.text)
                                 else -> log.debug(event.text)
                             }
