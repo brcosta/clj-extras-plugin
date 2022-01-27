@@ -41,6 +41,7 @@ class ClojureColorsAndFontsPageEx : ColorSettingsPage {
         val map: MutableMap<String, TextAttributesKey> = mutableMapOf()
         map["keyword-namespace"] = KEYWORD_NAMESPACE
         map["symbol-namespace"] = SYMBOL_NAMESPACE
+        map["head-symbol-namespace"] = HEAD_SYMBOL_NAMESPACE
         return map
     }
 
@@ -48,11 +49,12 @@ class ClojureColorsAndFontsPageEx : ColorSettingsPage {
         private val ATTRS: Array<AttributesDescriptor>
         val KEYWORD_NAMESPACE = TextAttributesKey.createTextAttributesKey("Keyword Namespace")
         val SYMBOL_NAMESPACE = TextAttributesKey.createTextAttributesKey("Symbol Namespace")
-
+        val HEAD_SYMBOL_NAMESPACE = TextAttributesKey.createTextAttributesKey("Head Symbol Namespace")
         init {
             ATTRS = arrayOf(
                 AttributesDescriptor("Keyword Namespace", KEYWORD_NAMESPACE),
-                AttributesDescriptor("Symbol Namespace", SYMBOL_NAMESPACE)
+                AttributesDescriptor("Symbol Namespace", SYMBOL_NAMESPACE),
+                AttributesDescriptor("Head Symbol Namespace", HEAD_SYMBOL_NAMESPACE)
             )
         }
     }
