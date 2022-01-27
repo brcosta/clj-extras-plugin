@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## 0.5.4
+- New option to customize highlighting of head symbols
+- Better warning/error highlighting
+- More fixes for built-in linting on Windows
+
 ## 0.5.2
 - Fix namespaced keywords highlighting bugs
 - Fix built-in linting on windows
