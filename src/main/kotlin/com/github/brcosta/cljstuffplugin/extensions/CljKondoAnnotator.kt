@@ -1,13 +1,11 @@
 package com.github.brcosta.cljstuffplugin.extensions
 
 import clojure.java.api.Clojure
-import clojure.lang.IFn
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.github.brcosta.cljstuffplugin.cljkondo.*
 import com.github.brcosta.cljstuffplugin.util.AppSettingsState
-import com.github.brcosta.cljstuffplugin.util.runWithClojureClassloader
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.lang.annotation.AnnotationBuilder
 import com.intellij.lang.annotation.AnnotationHolder
@@ -33,20 +31,13 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
 
     private val log = Logger.getInstance(CljKondoAnnotator::class.java)
 
-    private lateinit var run: IFn
-    private lateinit var print: IFn
+    private var run = getCljKondoRun()
+    private var print = getCheshirePrint()
+
     private val separators = " )".toCharArray()
 
     private val mapper: ObjectMapper =
         ObjectMapper().registerKotlinModule().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-
-    init {
-        initKondo()
-        runWithClojureClassloader {
-            run = getCljKondoRun()
-            print = getCheshirePrint()
-        }
-    }
 
     override fun collectInformation(file: PsiFile): ExternalLintAnnotationInput? {
         return collectInformation(file, null)
@@ -104,18 +95,15 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
         try {
             val lintFile = getTempLintFile(psiFile) ?: return ExternalLintAnnotationResult(collectedInfo, emptyList())
 
-            val results = runWithClojureClassloader {
-                val filePath = StringUtil.escapeBackSlashes(psiFile.virtualFile.path)
-                val tempPath = StringUtil.escapeBackSlashes(lintFile.absolutePath)
+            val filePath = StringUtil.escapeBackSlashes(psiFile.virtualFile.path)
+            val tempPath = StringUtil.escapeBackSlashes(lintFile.absolutePath)
 
-                val config =
-                    "{:config {:output {:format :json}} :filename \"$filePath\" :lint [\"$tempPath\"]}"
-                val findings = run.invoke(Clojure.read(config))
-                val results = print.invoke(findings)
+            val config =
+                "{:config {:output {:format :json}} :filename \"$filePath\" :lint [\"$tempPath\"]}"
+            val findings = run.invoke(Clojure.read(config))
+            val results = print.invoke(findings)
 
-                lintFile.delete()
-                results
-            }
+            lintFile.delete()
 
             return ExternalLintAnnotationResult(collectedInfo, arrayListOf(results.toString()))
 
@@ -175,9 +163,6 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
         super.apply(file, annotationResult, holder)
     }
 
-    private fun bla(param: String){
-
-    }
     private fun makeAnnotationBuilder(
         finding: Finding,
         holder: AnnotationHolder,

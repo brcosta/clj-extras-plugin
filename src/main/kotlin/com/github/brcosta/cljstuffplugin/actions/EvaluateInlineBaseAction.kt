@@ -77,7 +77,7 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
 
 
     private fun processForm(
-        form: ClojurePsiElement, editor: EditorEx, nrepl: NReplClient
+        form: ClojurePsiElement, editor: EditorEx, nrepl: NReplClient,
     ): String? {
 
         val settings = AppSettingsState.instance
@@ -164,7 +164,7 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
     private fun printOutput(
         stateAtom: ILookup,
         editor: EditorEx,
-        result: Map<String, Any?>
+        result: Map<String, Any?>,
     ) {
         try {
             `print$ansi_output`.invokeStatic(
@@ -249,7 +249,7 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
     }
 
     class ClojureEditorComponent(
-        document: Document?, project: Project?, fileType: FileType?, isViewer: Boolean, oneLineMode: Boolean
+        document: Document?, project: Project?, fileType: FileType?, isViewer: Boolean, oneLineMode: Boolean,
     ) : EditorTextField(document, project, fileType, isViewer, oneLineMode) {
 
         override fun createEditor(): EditorEx {

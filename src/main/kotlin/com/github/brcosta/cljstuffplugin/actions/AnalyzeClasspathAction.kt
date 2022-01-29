@@ -1,11 +1,12 @@
 package com.github.brcosta.cljstuffplugin.actions
 
 import clojure.java.api.Clojure
+import clojure.lang.Keyword
+import clojure.lang.PersistentHashMap
 import com.github.brcosta.cljstuffplugin.cljkondo.CljKondoProcessBuilder
 import com.github.brcosta.cljstuffplugin.cljkondo.CljKondoProcessRunner
 import com.github.brcosta.cljstuffplugin.cljkondo.getCljKondoRun
 import com.github.brcosta.cljstuffplugin.util.AppSettingsState
-import com.github.brcosta.cljstuffplugin.util.runWithClojureClassloader
 import com.intellij.notification.Notification
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -21,11 +22,11 @@ import java.io.File
 
 open class AnalyzeClasspathAction : AnAction() {
     private val log = Logger.getInstance(AnalyzeClasspathAction::class.java)
-
     var notification: Notification? = null
 
     override fun actionPerformed(event: AnActionEvent) {
         if (event.project != null) {
+
             notification?.expire()
             val settings = AppSettingsState.instance
             val cljkondoPath = settings.cljkondoPath
@@ -53,32 +54,30 @@ open class AnalyzeClasspathAction : AnAction() {
         ProgressManager.getInstance()
             .run(object : Task.Backgroundable(project, "Clj-kondo: Analyze project classpath") {
                 override fun run(indicator: ProgressIndicator) {
-                    runWithClojureClassloader {
-                        val run = getCljKondoRun()
-                        val pathsList =
-                            OrderEnumerator.orderEntries(project).recursively().librariesOnly().pathsList
+                    val run = getCljKondoRun()
+                    val pathsList =
+                        OrderEnumerator.orderEntries(project).recursively().librariesOnly().pathsList
 
-                        val basePath = StringUtil.escapeBackSlashes(project.basePath!!)
-                        indicator.text = "Analyzing project sources..."
-                        run.invoke(Clojure.read("{:config {:output {:format :json}} :copy-configs true :dependencies true :lint [\"$basePath\"]}"))
+                    val basePath = StringUtil.escapeBackSlashes(project.basePath!!)
+                    indicator.text = "Analyzing project sources..."
+                    run.invoke(Clojure.read("{:config {:output {:format :json}} :copy-configs true :dependencies true :lint [\"$basePath\"]}"))
 
-                        indicator.isIndeterminate = false
+                    indicator.isIndeterminate = false
 
-                        val configDir = "${basePath}${File.separatorChar}.clj-kondo"
+                    val configDir = "${basePath}${File.separatorChar}.clj-kondo"
 
-                        pathsList.virtualFiles.forEachIndexed { index, file ->
-                            if (!indicator.isCanceled) {
-                                log.info("built-in clj-kondo: Linting classpath file: ${file.path}")
+                    pathsList.virtualFiles.forEachIndexed { index, file ->
+                        if (!indicator.isCanceled) {
+                            log.info("built-in clj-kondo: Linting classpath file: ${file.path}")
 
-                                val filePath = StringUtil.unescapeBackSlashes(file.path)
-                                val config =
-                                    "{:config-dir \"${configDir}\" :copy-configs true :dependencies true :lint [\"$filePath\"]}"
+                            val filePath = StringUtil.unescapeBackSlashes(file.path)
+                            val config =
+                                "{:config-dir \"${configDir}\" :copy-configs true :dependencies true :lint [\"$filePath\"]}"
 
-                                indicator.text = "Analyzing '${file.path}'..."
-                                indicator.fraction = index.toDouble() / pathsList.virtualFiles.size
+                            indicator.text = "Analyzing '${file.path}'..."
+                            indicator.fraction = index.toDouble() / pathsList.virtualFiles.size
 
-                                run.invoke(Clojure.read(config))
-                            }
+                            run.invoke(Clojure.read(config))
                         }
                     }
                 }
