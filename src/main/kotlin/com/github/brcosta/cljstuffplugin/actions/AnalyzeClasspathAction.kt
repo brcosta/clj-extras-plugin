@@ -1,8 +1,6 @@
 package com.github.brcosta.cljstuffplugin.actions
 
 import clojure.java.api.Clojure
-import clojure.lang.Keyword
-import clojure.lang.PersistentHashMap
 import com.github.brcosta.cljstuffplugin.cljkondo.CljKondoProcessBuilder
 import com.github.brcosta.cljstuffplugin.cljkondo.CljKondoProcessRunner
 import com.github.brcosta.cljstuffplugin.cljkondo.getCljKondoRun
