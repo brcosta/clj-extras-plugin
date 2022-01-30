@@ -26,6 +26,7 @@ import javax.swing.JComponent
 
 
 class ReplFileEditorProvider : FileEditorProvider, DumbAware {
+
     override fun accept(project: Project, file: VirtualFile): Boolean {
         val stateAtom = ReplAction.replState(project)?.deref() as ILookup? ?: return false
         val outputBuffer =
@@ -108,11 +109,7 @@ class ReplFileEditorProvider : FileEditorProvider, DumbAware {
 
         override fun getFile(): VirtualFile? {
             val stateAtom = ReplAction.replState(proj)?.deref() as ILookup?
-
-            val outputBuffer =
-                (stateAtom?.valAt(Keyword.intern("console"))) as ClojureConsole
-
-            return outputBuffer.clojureVirtualFile
+            return ((stateAtom?.valAt(Keyword.intern("console"))) as ClojureConsole?)?.clojureVirtualFile
         }
 
         override fun dispose() {
