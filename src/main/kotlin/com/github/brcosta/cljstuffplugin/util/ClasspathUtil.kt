@@ -20,7 +20,6 @@ fun <T> runWithClojureClassloader(
 }
 
 fun addURL(u: URL) {
-    println("Loading $u")
     (ClojureLoaderHolder.loader.get() as DynamicClassLoader).let { loader ->
         loader.urLs.forEach { url ->
             if ("$url" == "$u") {

@@ -2,14 +2,14 @@ package com.github.brcosta.cljstuffplugin.actions
 
 import clojure.lang.ILookup
 import clojure.lang.Keyword
-import com.intellij.execution.filters.CompositeFilter
-import com.intellij.execution.impl.EditorHyperlinkSupport
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.event.DocumentEvent
+import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.fileEditor.*
@@ -46,6 +46,8 @@ class ReplFileEditorProvider : FileEditorProvider, DumbAware {
 
     class ReplFileEditor() : UserDataHolderBase(), FileEditor {
 
+        private val log = Logger.getInstance(ReplFileEditor::class.java)
+
         var edit: Editor? = null
         var proj: Project? = null
 
@@ -62,30 +64,33 @@ class ReplFileEditorProvider : FileEditorProvider, DumbAware {
                 proj,
                 EditorKind.CONSOLE)
 
-            val filters = CompositeFilter(proj)
-            val hyperlinkSupport = EditorHyperlinkSupport(edit!!, proj)
+            edit?.let {
 
-            edit!!.settings.isLineMarkerAreaShown = false
-            edit!!.settings.setGutterIconsShown(false)
-            edit!!.settings.isVirtualSpace = false
-            edit!!.settings.isAdditionalPageAtBottom = false
+                println("Editor")
 
-            updateHighlighters(buffer, 50)
+                it.settings.isLineMarkerAreaShown = false
+                it.settings.isVirtualSpace = false
+                it.settings.isAdditionalPageAtBottom = false
+                it.settings.isUseSoftWraps = false
+                it.settings.setGutterIconsShown(false)
 
-            buffer.getEditor().document.addDocumentListener(object :
-                com.intellij.openapi.editor.event.DocumentListener {
-                override fun documentChanged(event: DocumentEvent) {
-                    if (event.isWholeTextReplaced) {
-                        edit!!.markupModel.removeAllHighlighters()
+                updateHighlighters(buffer, 50)
+
+                buffer.getEditor().document.addDocumentListener(object : DocumentListener {
+                    override fun documentChanged(event: DocumentEvent) {
+                        try {
+                            if (event.isWholeTextReplaced) {
+                                it.markupModel.removeAllHighlighters()
+                            }
+                            updateHighlighters(buffer, 50)
+                            updateHighlighters(buffer, 300)
+                            super.documentChanged(event)
+                        } catch (e: Exception) {
+                            log.error("File buffer update error.", e)
+                        }
                     }
-                    updateHighlighters(buffer, 50)
-                    updateHighlighters(buffer, 300)
-                    hyperlinkSupport.highlightHyperlinks(filters,
-                        0,
-                        edit!!.document.getLineNumber(edit!!.document.textLength))
-                    super.documentChanged(event)
-                }
-            })
+                })
+            }
 
         }
 
@@ -93,16 +98,18 @@ class ReplFileEditorProvider : FileEditorProvider, DumbAware {
             Executors.newCachedThreadPool().submit {
                 ApplicationManager.getApplication().invokeLater {
                     Thread.sleep(delayMs)
-                    edit!!.markupModel.removeAllHighlighters()
-                    buffer.getEditor().markupModel.allHighlighters.forEach {
-                        if (it.endOffset <= edit!!.document.textLength) {
-                            edit!!.markupModel.addRangeHighlighter(it.startOffset,
-                                it.endOffset,
-                                it.layer,
-                                it.getTextAttributes(EditorColorsManager.getInstance().globalScheme), it.targetArea)
+                    edit?.let { editor ->
+                        editor.markupModel.removeAllHighlighters()
+                        buffer.getEditor().markupModel.allHighlighters.forEach {
+                            if (it.endOffset <= editor.document.textLength) {
+                                editor.markupModel.addRangeHighlighter(it.startOffset,
+                                    it.endOffset,
+                                    it.layer,
+                                    it.getTextAttributes(EditorColorsManager.getInstance().globalScheme), it.targetArea)
+                            }
                         }
+                        EditorUtil.scrollToTheEnd(editor)
                     }
-                    EditorUtil.scrollToTheEnd(edit!!)
                 }
             }
         }
