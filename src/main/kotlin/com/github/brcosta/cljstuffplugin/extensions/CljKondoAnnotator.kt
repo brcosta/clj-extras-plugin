@@ -53,14 +53,10 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
         val cljkondoPath = settings.cljkondoPath
         val cljkondoEnabled = settings.cljkondoEnabled
 
-        return when {
-            !cljkondoEnabled -> ExternalLintAnnotationResult(collectedInfo, emptyList())
-            else -> {
-                when {
-                    FileUtil.exists(cljkondoPath) -> lintWithExecutableLinter(collectedInfo, cljkondoPath)
-                    else -> lintWithBuiltinLinter(collectedInfo)
-                }
-            }
+        return if (!cljkondoEnabled) ExternalLintAnnotationResult(collectedInfo, emptyList())
+        else when {
+            FileUtil.exists(cljkondoPath) -> lintWithExecutableLinter(collectedInfo, cljkondoPath)
+            else -> lintWithBuiltinLinter(collectedInfo)
         }
 
     }
@@ -69,24 +65,30 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
         collectedInfo: ExternalLintAnnotationInput, cljkondoPath: String,
     ): ExternalLintAnnotationResult<List<String>> {
 
-        val psiFile = collectedInfo.psiFile
-        val lintFile = getTempLintFile(psiFile) ?: return ExternalLintAnnotationResult(collectedInfo, emptyList())
+        try {
 
-        val command = CljKondoProcessBuilder()
-            .workDirectory(psiFile.project.basePath!!)
-            .withExePath(cljkondoPath)
-            .withLintFile(lintFile.absolutePath)
-            .withFilename(StringUtil.escapeBackSlashes(psiFile.virtualFile.path))
-            .withConfig("{:output {:format :json }}")
-            .build()
+            val psiFile = collectedInfo.psiFile
+            val lintFile = getTempLintFile(psiFile) ?: return ExternalLintAnnotationResult(collectedInfo, emptyList())
 
-        val output = CljKondoProcessRunner()
-            .withCommandLine(command.first)
-            .withProcess(command.second)
-            .withTimeout(5000)
-            .run()
+            val command = CljKondoProcessBuilder()
+                .workDirectory(psiFile.project.basePath!!)
+                .withExePath(cljkondoPath)
+                .withLintFile(lintFile.absolutePath)
+                .withFilename(StringUtil.escapeBackSlashes(psiFile.virtualFile.path))
+                .withConfig("{:output {:format :json }}")
+                .build()
 
-        return ExternalLintAnnotationResult(collectedInfo, arrayListOf(output.stdout))
+            val output = CljKondoProcessRunner()
+                .withCommandLine(command.first)
+                .withProcess(command.second)
+                .withTimeout(5000)
+                .run()
+
+            return ExternalLintAnnotationResult(collectedInfo, arrayListOf(output.stdout))
+        } catch (e: Exception) {
+            log.error("Error trying to annotate file", e)
+            return ExternalLintAnnotationResult(collectedInfo, emptyList())
+        }
     }
 
     private fun lintWithBuiltinLinter(collectedInfo: ExternalLintAnnotationInput): ExternalLintAnnotationResult<List<String>> {
@@ -156,7 +158,7 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
 
             if (document != null && lines != null) {
                 mapper.readValue(result, Diagnostics::class.java).findings.forEach {
-                    makeAnnotationBuilder(it, holder, document, lines).create()
+                    makeAnnotationBuilder(it, holder, document, lines)?.create()
                 }
             }
         }
@@ -168,20 +170,25 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
         holder: AnnotationHolder,
         document: Document,
         lines: List<String>,
-    ): AnnotationBuilder {
-        val severity = convertLevelToSeverity(finding.level)
-        val message = "clj-kondo: ${finding.message}"
-        val textRange = calculateTextRange(document, lines, finding)
-        val annotation = holder.newAnnotation(severity, message).range(textRange)
+    ): AnnotationBuilder? {
+        try {
+            val severity = convertLevelToSeverity(finding.level)
+            val message = "clj-kondo: ${finding.message}"
+            val textRange = calculateTextRange(document, lines, finding)
+            val annotation = holder.newAnnotation(severity, message).range(textRange)
 
-        return when (finding.type) {
-            "unused-binding", "unused-import", "unused-namespace" -> {
-                annotation.textAttributes(CodeInsightColors.NOT_USED_ELEMENT_ATTRIBUTES)
+            return when (finding.type) {
+                "unused-binding", "unused-import", "unused-namespace" -> {
+                    annotation.textAttributes(CodeInsightColors.NOT_USED_ELEMENT_ATTRIBUTES)
+                }
+                else -> when (finding.level) {
+                    "warning" -> annotation.textAttributes(CodeInsightColors.WEAK_WARNING_ATTRIBUTES)
+                    else -> annotation.highlightType(convertLevelToHighlight(finding.level))
+                }
             }
-            else -> when (finding.level) {
-                "warning" -> annotation.textAttributes(CodeInsightColors.WEAK_WARNING_ATTRIBUTES)
-                else -> annotation.highlightType(convertLevelToHighlight(finding.level))
-            }
+        } catch (e: Exception) {
+            log.error("Error making clj-kondo annotation", e)
+            return null
         }
     }
 

@@ -19,7 +19,7 @@ class CljKondoNotifier : StartupActivity {
         val settings = AppSettingsState.instance
 
         val files = File(project.basePath!!).list()
-        val isClojureProject = files!!.count { it.contains("clj") or it.contains("cljs") or  it.contains("edn") } > 0
+        val isClojureProject = files!!.count { it.contains("clj") or it.contains("cljs") or it.contains("edn") } > 0
 
         if (settings.cljkondoEnabled and isClojureProject) {
             val notification = Notification(
