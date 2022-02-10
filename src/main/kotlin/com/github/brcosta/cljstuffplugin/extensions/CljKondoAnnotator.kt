@@ -19,6 +19,7 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.util.io.FileUtilRt
 import com.intellij.openapi.util.text.StringUtil
+import com.intellij.openapi.util.text.Strings
 import com.intellij.psi.MultiplePsiFilesPerDocumentFileViewProvider
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
@@ -198,11 +199,11 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
         finding: Finding,
     ): TextRange {
         val row = max(0, finding.row - 1)
-        val line = lines[row]
+        val line = if (row < lines.size) lines[row] else Strings.EMPTY_CHAR_SEQUENCE
         val col = max(0, finding.col - 1)
-        val isExpr = line[col] == '('
+        val isExpr = col < line.length && line[col] == '('
 
-        val nextToken = line.substring(col).indexOfAny(separators)
+        val nextToken = if (line.isNotEmpty()) line.substring(col).indexOfAny(separators) else 0
         val endRow = if (isExpr) row else finding.endRow - 1
         val endCol = if (isExpr) col + max(1, nextToken) else finding.endCol - 1
 
