@@ -65,9 +65,6 @@ class ReplFileEditorProvider : FileEditorProvider, DumbAware {
                 EditorKind.CONSOLE)
 
             edit?.let {
-
-                println("Editor")
-
                 it.settings.isLineMarkerAreaShown = false
                 it.settings.isVirtualSpace = false
                 it.settings.isAdditionalPageAtBottom = false

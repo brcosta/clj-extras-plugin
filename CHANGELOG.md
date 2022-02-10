@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## 0.5.5
+- Update built-in clj-kondo to v2022.02.09
+- Fix bug with unbalanced parens
+
 ## 0.5.4
 - New option to customize highlighting of head symbols
 - Better warning/error highlighting
