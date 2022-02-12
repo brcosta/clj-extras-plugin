@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+## 0.5.6
+- Fix remote repl connection port handling
+
 ## 0.5.5
 - Update built-in clj-kondo to v2022.02.09
 - Fix bug with unbalanced parens

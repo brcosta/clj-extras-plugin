@@ -88,7 +88,7 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
 
         val replState = (stateAtom.valAt(Keyword.intern("repl-state")) as Atom?)?.deref() as ILookup?
         val host = replState?.valAt(Keyword.intern("host")) as String?
-        val port = replState?.valAt(Keyword.intern("port")) as Long?
+        val port = replState?.valAt(Keyword.intern("port")) as Number?
         val project = editor.project
 
         if (project != null && host != null && port != null) {
