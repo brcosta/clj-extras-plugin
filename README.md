@@ -23,6 +23,21 @@ Custom features added on top of Cursive for Clojure Lovers like inline code eval
   Download the [latest release](https://github.com/brcosta/clj-stuff-plugin/releases/latest) and install it manually using
   <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>⚙️</kbd> > <kbd>Install plugin from disk...</kbd>
 
+## Preferences
+
+Custom highlighting can be configured at <kbd>Settings/Preferences</kbd> > <kbd>Editor</kbd> > <kbd>Color Scheme</kbd> > <kbd>Clojure Extras</kbd>
+
+You can also setup a custom clj-kondo binary, enable/disable inspections, pretty printing and stdout redirection on <kbd>Settings/Preferences</kbd> > <kbd>Tools</kbd> > <kbd>Clojure Extras</kdb>
+
+<img width="909" alt="image" src="https://user-images.githubusercontent.com/1129599/153772377-554e9bdc-6b4e-4418-b7f5-ac37969edfd6.png">
+
+## Tips
+
+To make clj-kondo inspections highlighting faster you can tune the autoreparse delay on <kbd>Settings/Preferences</kbd> > <kbd>Editor</kbd> > <kbd>Autoreparse delay</kbd> 
+
+<img width="898" alt="image" src="https://user-images.githubusercontent.com/1129599/153772517-6ee6b58e-1a03-4c18-8ef3-1195ce4e3eb0.png">
+
+
 ---
 Plugin based on the [IntelliJ Platform Plugin Template][template].
 
