@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## 0.6.1
+- Fix binary clj-kondo stderr handling
+- Fix random out-of-bounds string error on code inspection
+
 ## 0.6.0
 - Update built-in clj-kondo to v2022.02.09
 - Fix remote repl connection port handling
