@@ -1,6 +1,8 @@
 # clojure-extras-plugin Changelog
 
 ## [Unreleased]
+## 0.7.0
+- Update built-in clj-kondo to v2022.04.08
 
 ## 0.6.1
 - Fix binary clj-kondo stderr handling

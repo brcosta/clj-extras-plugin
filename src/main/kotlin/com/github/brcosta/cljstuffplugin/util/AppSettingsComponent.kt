@@ -18,7 +18,7 @@ class AppSettingsComponent {
         panel = FormBuilder.createFormBuilder()
             .addLabeledComponent(
                 // TODO: get this from build.gradle
-                JBLabel("Clj-Kondo executable path (leave empty to use built-in version 2022.02.09):"),
+                JBLabel("Clj-Kondo executable path (leave empty to use built-in version 2022.04.08):"),
                 cljkondoPath,
                 1,
                 true

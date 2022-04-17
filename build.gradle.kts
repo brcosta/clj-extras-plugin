@@ -23,10 +23,14 @@ repositories {
     maven {
         url = uri("https://clojars.org/repo")
     }
+    maven {
+        url = uri("https://repo.clojars.org")
+        name = "Clojars"
+    }
 }
 
 dependencies {
-    implementation("clj-kondo:clj-kondo:2022.02.09") {
+    implementation("clj-kondo:clj-kondo:2022.04.08") {
         exclude("org.clojure", "clojure")
     }
 }
