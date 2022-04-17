@@ -1,8 +1,6 @@
 package com.github.brcosta.cljstuffplugin.extensions
 
 import clojure.java.api.Clojure
-import clojure.lang.ISeq
-import clojure.lang.RT
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
@@ -34,8 +32,7 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
 
     private val log = Logger.getInstance(CljKondoAnnotator::class.java)
 
-    private var withInStr = getWithInStr()
-    private var run = getCljKondoRun()
+    private var runWithInStr = getWithInStr()
     private var print = getCheshirePrint()
 
     private val separators = " )".toCharArray()
@@ -100,19 +97,12 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
 
         try {
             val lintFile = getTempLintFile(psiFile) ?: return ExternalLintAnnotationResult(collectedInfo, emptyList())
-
             val filePath = StringUtil.escapeBackSlashes(psiFile.virtualFile.path)
-            val tempPath = StringUtil.escapeBackSlashes(lintFile.absolutePath)
 
             val config =
                 "{:config {:output {:format :json}} :filename \"$filePath\" :lint [-]}"
 
-         //   val eval = Clojure.`var`("clojure.core", "eval!")
-            val cfg = Clojure.read(config)
-                //    val kondoRun = run.(Clojure.read(config))
-
-        //    val kondorun = Clojure.read("(clj-kondo.core/run! {:config {:output {:format :json}} :filename \"$filePath\" :lint [-]})")
-            val findings = withInStr.invoke(getPsiFileContent(psiFile),  cfg)
+            val findings = runWithInStr.invoke(getPsiFileContent(psiFile),  Clojure.read(config))
             val results = print.invoke(findings)
 
             lintFile.delete()
