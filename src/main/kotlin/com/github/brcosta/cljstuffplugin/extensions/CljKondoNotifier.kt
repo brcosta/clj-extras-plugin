@@ -19,22 +19,28 @@ class CljKondoNotifier : StartupActivity {
         val settings = AppSettingsState.instance
 
         val files = File(project.basePath!!).list()
+
         val isClojureProject = files!!.count { it.contains("clj") or it.contains("cljs") or it.contains("edn") } > 0
 
         if (settings.cljkondoEnabled and isClojureProject) {
-            val notification = Notification(
-                "ProjectOpenNotification",
-                "Clj-kondo: Analyze project classpath",
-                "Analyze classpath on '${project.name}' for better linting results",
-                NotificationType.INFORMATION
-            )
 
-            val action = AnalyzeClasspathAction()
-            action.templatePresentation.text = "Analyze Classpath"
-            action.notification = notification
+            if (files.contains(".clj-kondo")) {
+                AnalyzeClasspathAction().analyzeDependencies(project)
+            } else {
+                val notification = Notification(
+                    "ProjectOpenNotification",
+                    "Clj-kondo: Analyze project classpath",
+                    "Analyze classpath on '${project.name}' for better linting results",
+                    NotificationType.INFORMATION
+                )
 
-            notification.addAction(action)
-            notification.notify(project)
+                val action = AnalyzeClasspathAction()
+                action.templatePresentation.text = "Analyze Classpath"
+                action.notification = notification
+
+                notification.addAction(action)
+                notification.notify(project)
+            }
         }
 
     }
