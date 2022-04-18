@@ -32,7 +32,7 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
 
     private val log = Logger.getInstance(CljKondoAnnotator::class.java)
 
-    private var run = getCljKondoRun()
+    private var runWithInStr = getWithInStr()
     private var print = getCheshirePrint()
 
     private val separators = " )".toCharArray()
@@ -74,7 +74,7 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
             val command = CljKondoProcessBuilder()
                 .workDirectory(psiFile.project.basePath!!)
                 .withExePath(cljkondoPath)
-                .withLintFile(lintFile.absolutePath)
+                .withLintCode(lintFile)
                 .withFilename(StringUtil.escapeBackSlashes(psiFile.virtualFile.path))
                 .withConfig("{:output {:format :json }}")
                 .build()
@@ -97,13 +97,12 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
 
         try {
             val lintFile = getTempLintFile(psiFile) ?: return ExternalLintAnnotationResult(collectedInfo, emptyList())
-
             val filePath = StringUtil.escapeBackSlashes(psiFile.virtualFile.path)
-            val tempPath = StringUtil.escapeBackSlashes(lintFile.absolutePath)
 
             val config =
-                "{:config {:output {:format :json}} :filename \"$filePath\" :lint [\"$tempPath\"]}"
-            val findings = run.invoke(Clojure.read(config))
+                "{:config {:output {:format :json}} :filename \"$filePath\" :lint [-]}"
+
+            val findings = runWithInStr.invoke(getPsiFileContent(psiFile),  Clojure.read(config))
             val results = print.invoke(findings)
 
             lintFile.delete()
@@ -116,17 +115,22 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
         }
     }
 
+    private fun getPsiFileContent(psiFile: PsiFile): String? {
+        val documentManager = PsiDocumentManager.getInstance(psiFile.project)
+        val document: Document = documentManager.getDocument(psiFile) ?: return null
+
+        return document.text
+    }
 
     // https://intellij-support.jetbrains.com/hc/en-us/community/posts/115000337510-Only-trigger-externalAnnotator-when-the-file-system-is-in-sync
     private fun getTempLintFile(psiFile: PsiFile): File? {
         val prefix = "clj_extras_clj_kondo_annotator"
-        val documentManager = PsiDocumentManager.getInstance(psiFile.project)
-        val document: Document = documentManager.getDocument(psiFile) ?: return null
+        val content = getPsiFileContent(psiFile) ?: return null
         val lintFile = FileUtilRt.createTempFile(
             prefix,
             "${System.currentTimeMillis()}.${psiFile.virtualFile.extension}", true
         )
-        Files.writeString(lintFile.toPath(), document.charsSequence)
+        Files.writeString(lintFile.toPath(), content)
         return lintFile
     }
 

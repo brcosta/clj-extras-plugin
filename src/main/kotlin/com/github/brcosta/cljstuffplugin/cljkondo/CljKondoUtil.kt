@@ -2,6 +2,7 @@ package com.github.brcosta.cljstuffplugin.cljkondo
 
 import clojure.java.api.Clojure
 import clojure.lang.IFn
+import clojure.lang.RT
 import com.github.brcosta.cljstuffplugin.extensions.CljKondoAnnotator
 import com.github.brcosta.cljstuffplugin.util.addURL
 import com.github.brcosta.cljstuffplugin.util.runWithClojureClassloader
@@ -41,6 +42,12 @@ private fun requireClojureDependencies() {
     val require = Clojure.`var`("clojure.core", "require")
     require.invoke(Clojure.read("clj-kondo.core"))
     require.invoke(Clojure.read("cheshire.core"))
+}
+
+fun getWithInStr(): IFn {
+    initKondo().get()
+    RT.load("kondoutil")
+    return Clojure.`var`("kondoutil", "run-with-in-str")
 }
 
 fun getCljKondoRun(): IFn {
