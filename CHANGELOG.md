@@ -3,6 +3,10 @@
 ## [Unreleased]
 ## 0.7.0
 - Update built-in clj-kondo to v2022.04.08
+- The plugin will now automatically analyze classpath dependencies if the project has a .clj-kondo directory
+- Fixed wrong text wrapping in some outputs when inline-evaluating
+- Fixed bug with new namespace name linter
+- Update plugin to support latest Intellij (v2022.1), thanks @prertik!
 
 ## 0.6.1
 - Fix binary clj-kondo stderr handling
