@@ -24,25 +24,28 @@ open class AnalyzeClasspathAction : AnAction() {
 
     override fun actionPerformed(event: AnActionEvent) {
         if (event.project != null) {
-
             notification?.expire()
-            val settings = AppSettingsState.instance
-            val cljkondoPath = settings.cljkondoPath
+            analyzeDependencies(event.project!!)
+        }
+    }
 
-            event.project!!.basePath?.let {
-                val kondoConfig = File(event.project!!.basePath, ".clj-kondo")
-                if (!kondoConfig.exists()) {
-                    log.info("creating .clj-kondo directory for '${event.project!!.name}'")
-                    kondoConfig.mkdir()
-                } else {
-                    log.info(".clj-kondo already exists")
-                }
-            }
+    fun analyzeDependencies(project: Project) {
+        val settings = AppSettingsState.instance
+        val cljkondoPath = settings.cljkondoPath
 
-            when {
-                FileUtil.exists(cljkondoPath) -> analyzeWithExecutableLinter(event.project!!, cljkondoPath)
-                else -> analyzeWithBuiltinLinter(event.project!!)
+        project.basePath?.let {
+            val kondoConfig = File(project.basePath, ".clj-kondo")
+            if (!kondoConfig.exists()) {
+                log.info("creating .clj-kondo directory for '${project.name}'")
+                kondoConfig.mkdir()
+            } else {
+                log.info(".clj-kondo already exists")
             }
+        }
+
+        when {
+            FileUtil.exists(cljkondoPath) -> analyzeWithExecutableLinter(project, cljkondoPath)
+            else -> analyzeWithBuiltinLinter(project)
         }
     }
 
