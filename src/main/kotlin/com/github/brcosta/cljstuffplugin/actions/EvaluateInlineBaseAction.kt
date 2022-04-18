@@ -39,6 +39,7 @@ import javax.swing.JButton
 import javax.swing.JLabel
 import javax.swing.JPanel
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 
 open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
@@ -205,11 +206,14 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
             val linesCount = lines.count()
             val width = editorInput.getFontMetrics(font)
                 .getStringBounds(lines.maxByOrNull { it.length }, editorInput.graphics).width
+            val padding = editorInput.getFontMetrics(font)
+                .getStringBounds("WWW", editorInput.graphics).width
             val height =
                 (editorInput.getFontMetrics(font).getStringBounds("W", editorInput.graphics).height + 5) * linesCount
 
             editorInput.preferredSize =
-                Dimension(min(800, width.toInt() + 20), min(400, height.toInt()) + (if (linesCount == 1) 6 else 24))
+                Dimension(min(800, width.toInt() + padding.roundToInt()),
+                    min(400, height.toInt()) + (if (linesCount == 1) 12 else 24))
             editorInput.autoscrolls = true
 
             val panel = JPanel()
