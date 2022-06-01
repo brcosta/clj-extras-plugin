@@ -2,14 +2,16 @@
 
 <!-- Plugin description -->
 
-Custom features added on top of Cursive for Clojure Lovers like inline code evaluation, clj-kondo linting and more!
+Custom features added on top of Cursive for Clojure Lovers: inline code evaluation, clj-kondo linting and more!
+
+<!-- Plugin description end -->
+
+## Main Features
 
 - Inline code evaluation: evaluate forms directly in source view (see screenshots)! Just add a custom Keymap for Tools/Evaluate Inline actions menu
 - Clj-kondo support: lint your files with clj-kondo (built-in or local binary support)
 - An annotator for keyword/symbols namespaces (custom syntax highlighted namespaces ftw!)
 - Status bar widget to display current file/namespace (great for zen mode, try it)
-
-<!-- Plugin description end -->
 
 ## Installation
 
