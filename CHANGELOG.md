@@ -1,6 +1,9 @@
 # clojure-extras-plugin Changelog
 
 ## [Unreleased]
+## 0.7.1
+- Update built-in clj-kondo to v2022.05.31
+
 ## 0.7.0
 - Update built-in clj-kondo to v2022.04.08
 - The plugin will now automatically analyze classpath dependencies if the project has a .clj-kondo directory
