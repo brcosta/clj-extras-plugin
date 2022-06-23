@@ -2,8 +2,8 @@
 
 ## [Unreleased]
 
-## 0.7.2
-- Update plugin to support latest Intellij (v2022.2)
+## 0.7.3
+- Update built-in clj-kondo to v2022.06.22
 
 ## 0.7.1
 - Update built-in clj-kondo to v2022.05.31
