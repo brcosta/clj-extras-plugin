@@ -2,7 +2,7 @@
 
 <!-- Plugin description -->
 
-Custom features added on top of Cursive for Clojure Lovers: inline code evaluation, clj-kondo linting and more!
+Custom features added on top of Cursive for Clojure Lovers.
 
 <!-- Plugin description end -->
 

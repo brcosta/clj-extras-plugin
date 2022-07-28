@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+## 0.7.4
+- Upgrades plugin for IJ 2022.2
+
 ## 0.7.3
 - Update built-in clj-kondo to v2022.06.22
 
