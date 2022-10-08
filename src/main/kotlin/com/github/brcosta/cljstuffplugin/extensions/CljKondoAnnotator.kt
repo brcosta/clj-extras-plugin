@@ -15,6 +15,7 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.colors.CodeInsightColors
+import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.util.io.FileUtilRt
@@ -86,6 +87,8 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
                 .run()
 
             return ExternalLintAnnotationResult(collectedInfo, arrayListOf(output.stdout))
+        } catch (e: ProcessCanceledException) {
+            return ExternalLintAnnotationResult(collectedInfo, emptyList())
         } catch (e: Exception) {
             log.error("Error trying to annotate file", e)
             return ExternalLintAnnotationResult(collectedInfo, emptyList())
@@ -102,7 +105,7 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
             val config =
                 "{:config {:output {:format :json}} :filename \"$filePath\" :lint [-]}"
 
-            val findings = runWithInStr.invoke(getPsiFileContent(psiFile),  Clojure.read(config))
+            val findings = runWithInStr.invoke(getPsiFileContent(psiFile), Clojure.read(config))
             val results = print.invoke(findings)
 
             lintFile.delete()
@@ -186,6 +189,7 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
                 "unused-binding", "unused-import", "unused-namespace" -> {
                     annotation.textAttributes(CodeInsightColors.NOT_USED_ELEMENT_ATTRIBUTES)
                 }
+
                 else -> when (finding.level) {
                     "warning" -> annotation.textAttributes(CodeInsightColors.WEAK_WARNING_ATTRIBUTES)
                     else -> annotation.highlightType(convertLevelToHighlight(finding.level))

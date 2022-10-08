@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## 0.7.5
+- Update Built-in clj-kondo -> v2022.10.05
+- Fix ProcessCanceledException logging
+
 ## 0.7.4
 - Upgrades plugin for IJ 2022.2
 
