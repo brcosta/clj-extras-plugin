@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.7.6]
+- Update Built-in clj-kondo -> v2022.12.08
+- Upgrade plugin for IJ 2022.3
+- Upgrade gradle -> 7.6
+
 ## 0.7.5
 - Update Built-in clj-kondo -> v2022.10.05
 - Fix ProcessCanceledException logging
@@ -41,12 +46,10 @@
 - Fix built-in linting on windows
 
 ## 0.5.1
-
 - Support to Ansi colors on stdout
 - Streamlined namespace highlighter
 
 ## 0.5.0
-
 - Option do analyze the project classpath with clj-kondo for better linting results
 - Inline eval panel will now resize itself automatically based on content
 - Inline eval pretty printing (good for long maps)
@@ -54,24 +57,20 @@
 - Bump clj-kondo version to 2022.01.15
 
 ## 0.4.5
-
 - Bump clj-kondo version to 2022.01.13
 - Make warnings highlighting less intrusive
 - Fix error when the project doesn't have a .clj-kondo config folder
 - Fix error linting CLJS files
 
 ## 0.4.0
-
 - Better clj-kondo integration performance (to make it even faster tune the AutoReparse Delay Option in Preferences > Code Editing)
 
 ## 0.3.0
-
 - Add support to clj-kondo inspections
 - Evaluate forms asynchronously to avoid UI Freezes
 - Code cleanup
 
 ## 0.1.0
-
 - Better nREPL session detection (multiple REPLs support)
 - Evaluate forms in the context of its namespace (current file)
 - Show evaluated results as syntax highlighted hints (pretty!)
