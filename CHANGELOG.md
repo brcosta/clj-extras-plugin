@@ -1,6 +1,7 @@
 # clojure-extras-plugin Changelog
 
 ## [Unreleased]
+- Update plugin to support latest Intellij (v2022.3)
 
 ## 0.7.5
 - Update Built-in clj-kondo -> v2022.10.05
