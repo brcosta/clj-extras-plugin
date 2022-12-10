@@ -2,8 +2,8 @@
 
 ## [Unreleased]
 
-## [0.7.6]
-- Update Built-in clj-kondo -> v2022.12.08
+## 0.7.6
+- Update Built-in clj-kondo -> v2022.12.10
 - Upgrade plugin for IJ 2022.3
 - Upgrade gradle -> 7.6
 
