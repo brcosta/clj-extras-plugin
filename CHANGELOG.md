@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## 0.7.9
+- Update Built-in clj-kondo -> v2023.07.13
+- Upgrade plugin for IJ 2023.2
+
 ## 0.7.8
 - Update Built-in clj-kondo -> v2023.05.26
 
