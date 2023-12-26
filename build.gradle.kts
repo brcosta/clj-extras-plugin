@@ -30,7 +30,7 @@ repositories {
 }
 
 dependencies {
-    implementation("clj-kondo:clj-kondo:2023.10.20") {
+    implementation("clj-kondo:clj-kondo:2023.12.15") {
         exclude("org.clojure", "clojure")
     }
 }
