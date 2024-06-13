@@ -72,8 +72,9 @@ open class AnalyzeClasspathAction : AnAction() {
                             log.info("built-in clj-kondo: Linting classpath file: ${file.path}")
 
                             val filePath = StringUtil.unescapeBackSlashes(file.path)
+                            val escapedConfigDir = StringUtil.escapeBackSlashes(configDir)
                             val config =
-                                "{:config-dir \"${configDir}\" :copy-configs true :dependencies true :lint [\"$filePath\"]}"
+                                "{:config-dir \"${escapedConfigDir}\" :copy-configs true :dependencies true :lint [\"$filePath\"]}"
 
                             indicator.text = "Analyzing '${file.path}'..."
                             indicator.fraction = index.toDouble() / pathsList.virtualFiles.size
