@@ -9,7 +9,7 @@ plugins {
     // Kotlin support
     id("org.jetbrains.kotlin.jvm") version "1.6.0"
     // Gradle IntelliJ Plugin
-    id("org.jetbrains.intellij") version "1.3.0"
+    id("org.jetbrains.intellij") version "1.15.0"
     // Gradle Changelog Plugin
     id("org.jetbrains.changelog") version "1.3.1"
 }
@@ -30,7 +30,7 @@ repositories {
 }
 
 dependencies {
-    implementation("clj-kondo:clj-kondo:2024.03.13") {
+    implementation("clj-kondo:clj-kondo:2024.08.01") {
         exclude("org.clojure", "clojure")
     }
 }
