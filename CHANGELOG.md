@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## 0.7.14
+- Update Built-in clj-kondo -> v2024.08.01
+- Upgrade plugin for IJ 2024.2
+- Remove support for IJ versions prior to 2021.3.3
+
 ## 0.7.13
 - Update Built-in clj-kondo -> v2024.08.01
 - Upgrade plugin for IJ 2024.2
