@@ -18,7 +18,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.openapi.vfs.VirtualFile
 import cursive.repl.ClojureConsole
-import cursive.repl.StyledOutputBuffer
+import cursive.repl.StyledPrinter
 import cursive.repl.actions.ReplAction
 import java.beans.PropertyChangeListener
 import java.util.concurrent.Executors
@@ -56,7 +56,7 @@ class ReplFileEditorProvider : FileEditorProvider, DumbAware {
             val stateAtom = ReplAction.replState(proj)?.deref() as ILookup?
 
             val buffer =
-                (stateAtom?.valAt(Keyword.intern("output-buffer"))) as StyledOutputBuffer
+                (stateAtom?.valAt(Keyword.intern("output-buffer"))) as StyledPrinter
 
             val factory = EditorFactory.getInstance()
             edit = factory.createViewer(
@@ -91,7 +91,7 @@ class ReplFileEditorProvider : FileEditorProvider, DumbAware {
 
         }
 
-        private fun updateHighlighters(buffer: StyledOutputBuffer, delayMs: Long) {
+        private fun updateHighlighters(buffer: StyledPrinter, delayMs: Long) {
             Executors.newCachedThreadPool().submit {
                 ApplicationManager.getApplication().invokeLater {
                     Thread.sleep(delayMs)
@@ -112,7 +112,7 @@ class ReplFileEditorProvider : FileEditorProvider, DumbAware {
         }
 
         override fun getFile(): VirtualFile? {
-            val stateAtom = ReplAction.replState(proj)?.deref() as ILookup?
+            val stateAtom = proj?.let { ReplAction.replState(it)?.deref() } as ILookup?
             return ((stateAtom?.valAt(Keyword.intern("console"))) as ClojureConsole?)?.clojureVirtualFile
         }
 
@@ -121,7 +121,7 @@ class ReplFileEditorProvider : FileEditorProvider, DumbAware {
             edit = null
         }
 
-        private fun StyledOutputBuffer.getEditor(): EditorEx {
+        private fun StyledPrinter.getEditor(): EditorEx {
             return javaClass.getDeclaredField("destination").let {
                 it.isAccessible = true
                 return@let it.get(this) as EditorEx

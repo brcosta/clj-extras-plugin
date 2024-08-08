@@ -25,8 +25,8 @@ import com.intellij.util.ConcurrencyUtil
 import com.intellij.util.ui.JBUI
 import cursive.file.ClojureFileType
 import cursive.psi.ClojurePsiElement
-import cursive.repl.StyledOutputBuffer
-import cursive.repl.`print$ansi_output`
+import cursive.repl.StyledPrinter
+import cursive.repl.ansiOutput
 import cursive.repl.actions.ReplAction
 import java.awt.Component
 import java.awt.Dimension
@@ -85,7 +85,7 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
         val prettyPrint = settings.prettyPrint
         val redirectStdout = settings.redirectStdoutToRepl
 
-        val stateAtom = ReplAction.replState(editor.project)?.deref() as ILookup? ?: return "(x) Repl is not connected"
+        val stateAtom = editor.project?.let { ReplAction.replState(it)?.deref() } as ILookup? ?: return "(x) Repl is not connected"
 
         val replState = (stateAtom.valAt(Keyword.intern("repl-state")) as Atom?)?.deref() as ILookup?
         val host = replState?.valAt(Keyword.intern("host")) as String?
@@ -168,14 +168,10 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
         result: Map<String, Any?>,
     ) {
         try {
-            `print$ansi_output`.invokeStatic(
-                ReplAction.replState(editor.project),
-                result["out"],
-                Clojure.read(":output-attributes")
-            )
+            ansiOutput(ReplAction.replState(editor.project!!)!!, result["out"] as String)
         } catch (e: Exception) {
             val outputBuffer =
-                (stateAtom.valAt(Keyword.intern("output-buffer"))) as StyledOutputBuffer
+                (stateAtom.valAt(Keyword.intern("output-buffer"))) as StyledPrinter
             outputBuffer.print(result["out"] as String, null)
         }
     }

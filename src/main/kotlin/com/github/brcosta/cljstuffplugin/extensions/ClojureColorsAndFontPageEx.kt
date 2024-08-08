@@ -7,7 +7,6 @@ import com.intellij.openapi.options.colors.ColorDescriptor
 import com.intellij.openapi.options.colors.ColorSettingsPage
 import cursive.ClojureIcons
 import cursive.highlighter.ClojureSyntaxHighlighter
-import org.jetbrains.annotations.NonNls
 import javax.swing.Icon
 
 @Suppress("unused")
@@ -18,7 +17,7 @@ class ClojureColorsAndFontsPageEx : ColorSettingsPage {
     }
 
     override fun getIcon(): Icon? {
-        return ClojureIcons.CLOJURE
+        return ClojureIcons.Clojure
     }
 
     override fun getAttributeDescriptors(): Array<AttributesDescriptor> {
@@ -33,7 +32,7 @@ class ClojureColorsAndFontsPageEx : ColorSettingsPage {
         return ClojureSyntaxHighlighter()
     }
 
-    override fun getDemoText(): @NonNls String {
+    override fun getDemoText(): String {
         return "; No preview available"
     }
 

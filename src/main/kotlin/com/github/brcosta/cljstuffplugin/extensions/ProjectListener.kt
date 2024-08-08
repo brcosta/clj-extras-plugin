@@ -6,6 +6,7 @@ import com.intellij.openapi.project.ProjectManagerListener
 
 
 class ProjectListener : ProjectManagerListener {
+    @Deprecated("Deprecated in Java")
     override fun projectOpened(project: Project) {
         LOG.debug("Project Opened ${project.name}")
 
