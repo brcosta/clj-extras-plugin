@@ -9,7 +9,7 @@
 - Upgrade plugin for IJ 2024.2 - Thanks R.A Porter (@coyotesqrl) for making it work :)
 - Update Built-in clj-kondo -> v2024.08.01
 - Locks plugin to IJ 2024.2 and matching Cursive release; this version will not work with any prior versions of IJ/Cursive
-- Upgrades plugin build system 
+- Upgrades plugin build system
 
 ## 0.7.13
 - Update Built-in clj-kondo -> v2024.08.01
