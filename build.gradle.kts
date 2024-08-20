@@ -1,5 +1,7 @@
 import org.jetbrains.changelog.markdownToHTML
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 
 fun properties(key: String) = project.findProperty(key).toString()
 
@@ -7,9 +9,10 @@ plugins {
     // Java support
     id("java")
     // Kotlin support
-    id("org.jetbrains.kotlin.jvm") version "1.6.0"
-    // Gradle IntelliJ Plugin
-    id("org.jetbrains.intellij") version "1.15.0"
+    id("org.jetbrains.kotlin.jvm") version "2.0.10"
+    // IntelliJ Platform Gradle Plugin
+    id("org.jetbrains.intellij.platform") version "2.0.1"
+
     // Gradle Changelog Plugin
     id("org.jetbrains.changelog") version "1.3.1"
 }
@@ -20,6 +23,9 @@ version = properties("pluginVersion")
 // Configure project's dependencies
 repositories {
     mavenCentral()
+    intellijPlatform {
+        defaultRepositories()
+    }
     maven {
         url = uri("https://clojars.org/repo")
     }
@@ -30,8 +36,14 @@ repositories {
 }
 
 dependencies {
-    implementation("clj-kondo:clj-kondo:2024.08.01") {
+    implementation(providers.gradleProperty("kondoVersion")) {
         exclude("org.clojure", "clojure")
+    }
+    intellijPlatform {
+        create(properties("platformType"), properties("platformVersion"))
+        plugins(providers.gradleProperty("platformPlugins").map { it.split(',') })
+        bundledPlugins(providers.gradleProperty("platformBundledPlugins").map { it.split(',') })
+        instrumentationTools()
     }
 }
 
@@ -39,12 +51,43 @@ dependencies {
 val platformVersion = System.getenv("PLATFORM_VERSION") ?: properties("platformVersion")
 val platformPlugins = System.getenv("PLATFORM_PLUGINS") ?: properties("platformPlugins")
 
-// Configure Gradle IntelliJ Plugin - read more: https://github.com/JetBrains/gradle-intellij-plugin
-intellij {
-    pluginName.set(properties("pluginName"))
-    version.set(platformVersion)
-    type.set(properties("platformType"))
-    plugins.set(platformPlugins.split(',').map(String::trim).filter(String::isNotEmpty))
+// Configure UI tests plugin
+// Read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-tasks.html#runIdeForUiTests
+val runIdeForUiTests by intellijPlatformTesting.runIde.registering {
+    task {
+        jvmArgumentProviders += CommandLineArgumentProvider {
+            listOf(
+                "-Drobot-server.port=8082",
+                "-Dide.mac.message.dialogs.as.sheets=false",
+                "-Djb.privacy.policy.text=<!--999.999-->",
+                "-Djb.consents.confirmation.enabled=false",
+            )
+        }
+    }
+    plugins {
+        robotServerPlugin()
+    }
+}
+
+intellijPlatform {
+    pluginConfiguration {
+        name = properties("pluginName")
+    }
+
+    pluginVerification {
+        // To run the verifier, install the latest version from https://github.com/JetBrains/intellij-plugin-verifier
+        // locally, and point cliPath to it
+        // cliPath = file("")
+        freeArgs = listOf("-mute", "TemplateWordInPluginName")
+        ides {
+            recommended()
+            select {
+                types = listOf(IntelliJPlatformType.IntellijIdeaCommunity, IntelliJPlatformType.IntellijIdeaUltimate)
+                sinceBuild = providers.gradleProperty("pluginSinceBuild")
+                untilBuild = providers.gradleProperty("pluginUntilBuild")
+            }
+        }
+    }
 }
 
 // Configure Gradle Changelog Plugin - read more: https://github.com/JetBrains/gradle-changelog-plugin
@@ -53,11 +96,10 @@ changelog {
     groups.set(emptyList())
 }
 
-tasks.withType(KotlinCompile::class).all {
-    kotlinOptions {
-        jvmTarget = "11"
-        // For creation of default methods in interfaces
+tasks.withType<KotlinJvmCompile> {
+    compilerOptions {
         freeCompilerArgs = listOf("-Xjvm-default=all")
+        jvmTarget = JvmTarget.JVM_21
     }
 }
 
@@ -68,9 +110,6 @@ tasks {
             sourceCompatibility = it
             targetCompatibility = it
         }
-        withType<KotlinCompile> {
-            kotlinOptions.jvmTarget = it
-        }
     }
 
     wrapper {
@@ -78,7 +117,7 @@ tasks {
     }
 
     patchPluginXml {
-        version.set(properties("pluginVersion"))
+        pluginVersion.set(properties("pluginVersion"))
         sinceBuild.set(properties("pluginSinceBuild"))
         untilBuild.set(properties("pluginUntilBuild"))
 
@@ -101,19 +140,6 @@ tasks {
                 getOrNull(properties("pluginVersion")) ?: getLatest()
             }.toHTML()
         })
-    }
-
-    runPluginVerifier {
-        ideVersions.set(properties("pluginVerifierIdeVersions").split(',').map(String::trim).filter(String::isNotEmpty))
-    }
-
-    // Configure UI tests plugin
-    // Read more: https://github.com/JetBrains/intellij-ui-test-robot
-    runIdeForUiTests {
-        systemProperty("robot-server.port", "8082")
-        systemProperty("ide.mac.message.dialogs.as.sheets", "false")
-        systemProperty("jb.privacy.policy.text", "<!--999.999-->")
-        systemProperty("jb.consents.confirmation.enabled", "false")
     }
 
     signPlugin {

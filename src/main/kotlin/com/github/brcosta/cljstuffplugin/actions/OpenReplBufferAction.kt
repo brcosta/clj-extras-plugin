@@ -17,7 +17,7 @@ open class OpenReplBufferAction : AnAction() {
         if (event.project != null) {
 
             val project = event.project!!
-            val stateAtom = ReplAction.replState(event.project)?.deref() as ILookup?
+            val stateAtom = ReplAction.replState(event.project!!)?.deref() as ILookup?
 
             val outputBuffer = (stateAtom?.valAt(Keyword.intern("console"))) as ClojureConsole?
 
