@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 - Upgrade plugin for IJ 2024.3
+- Update Built-in clj-kondo -> v2024.11.14
 
 ## 0.8.0
 - Upgrade plugin for IJ 2024.2 - Thanks R.A Porter (@coyotesqrl) for making it work :)
