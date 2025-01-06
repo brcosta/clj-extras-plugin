@@ -118,6 +118,9 @@ intellijPlatform {
             recommended()
         }
     }
+
+
+
 }
 
 // Configure Gradle Changelog Plugin - read more: https://github.com/JetBrains/gradle-changelog-plugin
@@ -165,5 +168,13 @@ intellijPlatformTesting {
                 robotServerPlugin()
             }
         }
+    }
+
+}
+
+//disable searchable build
+tasks {
+    buildSearchableOptions {
+        enabled = false
     }
 }
