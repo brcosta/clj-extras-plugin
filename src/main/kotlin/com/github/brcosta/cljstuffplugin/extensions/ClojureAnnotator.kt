@@ -79,6 +79,6 @@ class ClojureAnnotator : Annotator {
     private fun isReaderNamespacedSymbol(element: PsiElement) =
         (element.nextSibling != null) &&
                 (element.nextSibling is LeafPsiElement) &&
-                ((element.nextSibling as LeafPsiElement).elementType.debugName == "ns separator") &&
+                ((element.nextSibling as LeafPsiElement).elementType.toString() == "ns separator") &&
                 (element.parentOfType<ClSexpComment>(false) == null)
 }

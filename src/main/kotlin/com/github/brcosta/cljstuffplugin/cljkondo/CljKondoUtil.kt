@@ -3,10 +3,10 @@ package com.github.brcosta.cljstuffplugin.cljkondo
 import clojure.java.api.Clojure
 import clojure.lang.IFn
 import clojure.lang.RT
-import com.github.brcosta.cljstuffplugin.extensions.CljKondoAnnotator
 import com.github.brcosta.cljstuffplugin.util.addURL
 import com.github.brcosta.cljstuffplugin.util.runWithClojureClassloader
-import com.intellij.ide.plugins.cl.PluginClassLoader
+import com.intellij.ide.plugins.PluginManager
+import com.intellij.openapi.extensions.PluginId
 import java.io.File
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
@@ -33,8 +33,9 @@ fun initKondo(): CompletableFuture<Boolean> {
 
 
 private fun loadKondoDependencies() {
-    val pluginsPath = (CljKondoAnnotator::class.java.classLoader as PluginClassLoader).pluginDescriptor.pluginPath
-    val libsPath = "${pluginsPath}${File.separatorChar}lib"
+    val pluginDescriptor =
+        PluginManager.getInstance().findEnabledPlugin(PluginId.getId("com.github.brcosta.cljstuffplugin"))
+    val libsPath = "${pluginDescriptor?.pluginPath}${File.separatorChar}lib"
     File(libsPath).listFiles()?.forEach { addURL(it.toURI().toURL()) }
 }
 

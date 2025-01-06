@@ -1,12 +1,12 @@
 package com.github.brcosta.cljstuffplugin.actions
 
-import clojure.java.api.Clojure
 import clojure.lang.Atom
 import clojure.lang.IFn
 import clojure.lang.ILookup
 import clojure.lang.Keyword
 import com.github.brcosta.cljstuffplugin.util.AppSettingsState
 import com.github.brcosta.cljstuffplugin.util.NReplClient
+import com.github.javaparser.utils.StringEscapeUtils
 import com.intellij.codeInsight.hint.HintManager
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -27,7 +27,6 @@ import cursive.file.ClojureFileType
 import cursive.psi.ClojurePsiElement
 import cursive.repl.StyledPrinter
 import cursive.repl.ansiOutput
-import cursive.repl.actions.ReplAction
 import java.awt.Component
 import java.awt.Dimension
 import java.awt.Point
@@ -85,7 +84,7 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
         val prettyPrint = settings.prettyPrint
         val redirectStdout = settings.redirectStdoutToRepl
 
-        val stateAtom = editor.project?.let { ReplAction.replState(it)?.deref() } as ILookup? ?: return "(x) Repl is not connected"
+        val stateAtom = editor.project?.let { cursive.repl.activeReplState(it)?.deref() } as ILookup? ?: return "(x) Repl is not connected"
 
         val replState = (stateAtom.valAt(Keyword.intern("repl-state")) as Atom?)?.deref() as ILookup?
         val host = replState?.valAt(Keyword.intern("host")) as String?
@@ -126,7 +125,8 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
 
                                 return try {
                                     var value = result["value"] as String
-                                    value = org.apache.commons.lang.StringEscapeUtils.unescapeJava(value).trim()
+
+                                    value = StringEscapeUtils.unescapeJava(value).trim()
 
                                     if (redirectStdout && result["out"] != null) {
                                         printOutput(stateAtom, editor, result)
@@ -168,7 +168,7 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
         result: Map<String, Any?>,
     ) {
         try {
-            ansiOutput(ReplAction.replState(editor.project!!)!!, result["out"] as String)
+            ansiOutput(cursive.repl.activeReplState(editor.project!!)!!, result["out"] as String)
         } catch (e: Exception) {
             val outputBuffer =
                 (stateAtom.valAt(Keyword.intern("output-buffer"))) as StyledPrinter

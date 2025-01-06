@@ -19,7 +19,6 @@ import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.openapi.vfs.VirtualFile
 import cursive.repl.ClojureConsole
 import cursive.repl.StyledPrinter
-import cursive.repl.actions.ReplAction
 import java.beans.PropertyChangeListener
 import java.util.concurrent.Executors
 import javax.swing.JComponent
@@ -28,7 +27,7 @@ import javax.swing.JComponent
 class ReplFileEditorProvider : FileEditorProvider, DumbAware {
 
     override fun accept(project: Project, file: VirtualFile): Boolean {
-        val stateAtom = ReplAction.replState(project)?.deref() as ILookup? ?: return false
+        val stateAtom = cursive.repl.activeReplState(project)?.deref() as ILookup? ?: return false
         val outputBuffer =
             (stateAtom.valAt(Keyword.intern("console"))) as ClojureConsole? ?: return false
         return (file == outputBuffer.clojureVirtualFile)
@@ -53,7 +52,7 @@ class ReplFileEditorProvider : FileEditorProvider, DumbAware {
 
         constructor(proj: Project) : this() {
             this.proj = proj
-            val stateAtom = ReplAction.replState(proj)?.deref() as ILookup?
+            val stateAtom = cursive.repl.activeReplState(proj)?.deref() as ILookup?
 
             val buffer =
                 (stateAtom?.valAt(Keyword.intern("output-buffer"))) as StyledPrinter
@@ -112,7 +111,7 @@ class ReplFileEditorProvider : FileEditorProvider, DumbAware {
         }
 
         override fun getFile(): VirtualFile? {
-            val stateAtom = proj?.let { ReplAction.replState(it)?.deref() } as ILookup?
+            val stateAtom = proj?.let { cursive.repl.activeReplState(it)?.deref() } as ILookup?
             return ((stateAtom?.valAt(Keyword.intern("console"))) as ClojureConsole?)?.clojureVirtualFile
         }
 
@@ -132,7 +131,7 @@ class ReplFileEditorProvider : FileEditorProvider, DumbAware {
             return edit!!.component
         }
 
-        override fun getPreferredFocusedComponent(): JComponent? {
+        override fun getPreferredFocusedComponent(): JComponent {
             return edit!!.component
         }
 
