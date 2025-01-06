@@ -1,6 +1,6 @@
 # clojure-extras-plugin Changelog
 
-## 0.8.1
+## [Unreleased]
 
 - Upgrade plugin for IJ 2024.3
 - Update Built-in clj-kondo -> v2024.11.14
