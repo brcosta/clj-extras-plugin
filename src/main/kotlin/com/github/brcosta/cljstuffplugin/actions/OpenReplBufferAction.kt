@@ -9,7 +9,6 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import cursive.repl.ClojureConsole
-import cursive.repl.actions.ReplAction
 
 open class OpenReplBufferAction : AnAction() {
 
@@ -17,7 +16,7 @@ open class OpenReplBufferAction : AnAction() {
         if (event.project != null) {
 
             val project = event.project!!
-            val stateAtom = ReplAction.replState(event.project!!)?.deref() as ILookup?
+            val stateAtom = cursive.repl.activeReplState(event.project!!)?.deref() as ILookup?
 
             val outputBuffer = (stateAtom?.valAt(Keyword.intern("console"))) as ClojureConsole?
 

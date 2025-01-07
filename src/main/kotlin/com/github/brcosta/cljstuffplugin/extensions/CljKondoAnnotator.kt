@@ -3,7 +3,7 @@ package com.github.brcosta.cljstuffplugin.extensions
 import clojure.java.api.Clojure
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import com.fasterxml.jackson.module.kotlin.kotlinModule
 import com.github.brcosta.cljstuffplugin.cljkondo.*
 import com.github.brcosta.cljstuffplugin.util.AppSettingsState
 import com.intellij.codeInspection.ProblemHighlightType
@@ -39,7 +39,7 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
     private val separators = " )".toCharArray()
 
     private val mapper: ObjectMapper =
-        ObjectMapper().registerKotlinModule().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+        ObjectMapper().registerModule(kotlinModule()).configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 
     override fun collectInformation(file: PsiFile): ExternalLintAnnotationInput? {
         return collectInformation(file, null)

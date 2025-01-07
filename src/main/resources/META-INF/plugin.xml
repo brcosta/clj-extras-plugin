@@ -14,8 +14,7 @@
                    implementationClass="com.github.brcosta.cljstuffplugin.extensions.ClojureAnnotator"/>
 
         <statusBarWidgetFactory id="fileInfoWidget"
-                                implementation="com.github.brcosta.cljstuffplugin.extensions.FileInfoStatusBarWidgetFactory"
-                                order="after writeActionWidget"/>
+                                implementation="com.github.brcosta.cljstuffplugin.extensions.FileInfoStatusBarWidgetFactory"/>
 
         <externalAnnotator language="Clojure" implementationClass="com.github.brcosta.cljstuffplugin.extensions.CljKondoAnnotator" />
 
@@ -34,9 +33,9 @@
                 implementation="com.github.brcosta.cljstuffplugin.extensions.CljKondoNotifier"/>
 
         <fileEditorProvider implementation="com.github.brcosta.cljstuffplugin.actions.ReplFileEditorProvider"/>
-   
+
         <editorTabTitleProvider implementation="com.github.brcosta.cljstuffplugin.extensions.CustomEditorTabProvider" />
-   
+
     </extensions>
 
     <actions>
