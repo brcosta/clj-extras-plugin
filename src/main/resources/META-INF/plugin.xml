@@ -14,8 +14,7 @@
                    implementationClass="com.github.brcosta.cljstuffplugin.extensions.ClojureAnnotator"/>
 
         <statusBarWidgetFactory id="fileInfoWidget"
-                                implementation="com.github.brcosta.cljstuffplugin.extensions.FileInfoStatusBarWidgetFactory"
-                                order="after CodeStyleStatusBarWidget"/>
+                                implementation="com.github.brcosta.cljstuffplugin.extensions.FileInfoStatusBarWidgetFactory"/>
 
         <externalAnnotator language="Clojure" implementationClass="com.github.brcosta.cljstuffplugin.extensions.CljKondoAnnotator" />
 
