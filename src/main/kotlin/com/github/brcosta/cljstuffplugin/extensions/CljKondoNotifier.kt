@@ -2,16 +2,15 @@ package com.github.brcosta.cljstuffplugin.extensions
 
 import com.github.brcosta.cljstuffplugin.actions.AnalyzeClasspathAction
 import com.github.brcosta.cljstuffplugin.util.AppSettingsState
-import com.intellij.lang.LanguageUtil
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.startup.StartupActivity
+import com.intellij.openapi.startup.ProjectActivity
 import java.io.File
 
-class CljKondoNotifier : StartupActivity {
-    override fun runActivity(project: Project) {
+class CljKondoNotifier : ProjectActivity {
 
+    override suspend fun execute(project: Project) {
         if (project.basePath == null) {
             return
         }
@@ -28,7 +27,7 @@ class CljKondoNotifier : StartupActivity {
                 AnalyzeClasspathAction().analyzeDependencies(project)
             } else {
                 val notification = Notification(
-                    "ProjectOpenNotification",
+                    "Project Startup Tasks Messages",
                     "Clj-kondo: Analyze project classpath",
                     "Analyze classpath on '${project.name}' for better linting results",
                     NotificationType.INFORMATION
