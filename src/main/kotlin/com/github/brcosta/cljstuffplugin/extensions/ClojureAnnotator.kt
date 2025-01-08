@@ -67,10 +67,6 @@ class ClojureAnnotator : Annotator {
         }
     }
 
-    private fun isNamespaced(element: ClKeyword) =
-        (element.text?.contains("/") == true) &&
-                (element.parentOfType<ClSexpComment>(false) == null)
-
     private fun isNsReaderMacro(element: PsiElement) =
         (element.prevSibling != null) &&
                 (element.prevSibling.text == "#:") &&
@@ -81,4 +77,11 @@ class ClojureAnnotator : Annotator {
                 (element.nextSibling is LeafPsiElement) &&
                 ((element.nextSibling as LeafPsiElement).elementType.toString() == "ns separator") &&
                 (element.parentOfType<ClSexpComment>(false) == null)
+
+    companion object {
+        fun isNamespaced(element: ClKeyword) =
+            (element.text?.contains("/") == true) &&
+                    (element.parentOfType<ClSexpComment>(false) == null)
+    }
+
 }
