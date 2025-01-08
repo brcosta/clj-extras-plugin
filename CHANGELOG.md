@@ -1,7 +1,7 @@
 # clojure-extras-plugin Changelog
 
 ## [Unreleased]
-- Fix annotator issue
+- Fix deserialization failure
 
 ## 0.8.1
 - Upgrade plugin for IJ 2024.3

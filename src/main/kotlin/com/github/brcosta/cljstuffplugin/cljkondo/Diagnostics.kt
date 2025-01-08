@@ -1,13 +1,12 @@
 package com.github.brcosta.cljstuffplugin.cljkondo
 
+import com.fasterxml.jackson.annotation.JsonIgnore
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 
 data class Diagnostics(
-    @JsonProperty("findings")
-    val findings: List<Finding>,
-
-    @JsonProperty("summary")
-    val summary: Summary?
+    @JsonProperty("findings") val findings: List<Finding>,
+    @JsonProperty("summary") val summary: Summary?
 )
 
 data class Finding(
@@ -33,7 +32,7 @@ data class Finding(
 
 data class Summary(
     @JsonProperty("files")
-    var files: Int?,
+    val files: Int?,
     @JsonProperty("type")
     val type: String?,
     @JsonProperty("error")
