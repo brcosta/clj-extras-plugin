@@ -34,6 +34,7 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
     private val log = Logger.getInstance(CljKondoAnnotator::class.java)
 
     private var runWithInStr = getWithInStr()
+
     private var print = getCheshirePrint()
 
     private val separators = " )".toCharArray()
