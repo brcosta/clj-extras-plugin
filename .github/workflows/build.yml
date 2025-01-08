@@ -35,6 +35,13 @@ jobs:
       changelog: ${{ steps.properties.outputs.changelog }}
       pluginVerifierHomeDir: ${{ steps.properties.outputs.pluginVerifierHomeDir }}
     steps:
+      -
+      # Free GitHub Actions Environment Disk Space
+      - name: Maximize Build Space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          large-packages: false
 
       # Check out the current repository
       - name: Fetch Sources
@@ -50,6 +57,7 @@ jobs:
         with:
           distribution: zulu
           java-version: 17
+          cache: gradle
 
       # Setup Gradle
       - name: Setup Gradle
