@@ -1,6 +1,8 @@
 # clojure-extras-plugin Changelog
 
 ## [Unreleased]
+
+## 0.8.3
 - Update Built-in clj-kondo -> v2025.01.16
 
 ## 0.8.2
