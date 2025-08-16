@@ -6,6 +6,8 @@ import clojure.lang.ILookup
 import clojure.lang.Keyword
 import com.github.brcosta.cljstuffplugin.util.AppSettingsState
 import com.github.brcosta.cljstuffplugin.util.NReplClient
+import com.github.brcosta.cljstuffplugin.util.getState
+import com.github.brcosta.cljstuffplugin.util.getStateAtom
 import com.github.javaparser.utils.StringEscapeUtils
 import com.intellij.codeInsight.hint.HintManager
 import com.intellij.openapi.actionSystem.AnAction
@@ -84,7 +86,7 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
         val prettyPrint = settings.prettyPrint
         val redirectStdout = settings.redirectStdoutToRepl
 
-        val stateAtom = editor.project?.let { cursive.repl.activeReplState(it)?.deref() } as ILookup? ?: return "(x) Repl is not connected"
+        val stateAtom = editor.project?.let { getState(it) } ?: return "(x) Repl is not connected"
 
         val replState = (stateAtom.valAt(Keyword.intern("repl-state")) as Atom?)?.deref() as ILookup?
         val host = replState?.valAt(Keyword.intern("host")) as String?
@@ -168,7 +170,7 @@ open class EvaluateInlineBaseAction(private val formFn: IFn) : AnAction() {
         result: Map<String, Any?>,
     ) {
         try {
-            ansiOutput(cursive.repl.activeReplState(editor.project!!)!!, result["out"] as String)
+            ansiOutput(getStateAtom(editor.project!!)!!, result["out"] as String)
         } catch (e: Exception) {
             val outputBuffer =
                 (stateAtom.valAt(Keyword.intern("output-buffer"))) as StyledPrinter

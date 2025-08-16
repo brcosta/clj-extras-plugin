@@ -1,7 +1,8 @@
 package com.github.brcosta.cljstuffplugin.actions
 
-import clojure.lang.ILookup
 import clojure.lang.Keyword
+import com.github.brcosta.cljstuffplugin.util.getState
+import com.github.brcosta.cljstuffplugin.util.getStateAtom
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
@@ -27,9 +28,9 @@ import javax.swing.JComponent
 class ReplFileEditorProvider : FileEditorProvider, DumbAware {
 
     override fun accept(project: Project, file: VirtualFile): Boolean {
-        val stateAtom = cursive.repl.activeReplState(project)?.deref() as ILookup? ?: return false
+        val stateAtom = getState(project)
         val outputBuffer =
-            (stateAtom.valAt(Keyword.intern("console"))) as ClojureConsole? ?: return false
+            (stateAtom?.valAt(Keyword.intern("console"))) as ClojureConsole? ?: return false
         return (file == outputBuffer.clojureVirtualFile)
     }
 
@@ -52,7 +53,7 @@ class ReplFileEditorProvider : FileEditorProvider, DumbAware {
 
         constructor(proj: Project) : this() {
             this.proj = proj
-            val stateAtom = cursive.repl.activeReplState(proj)?.deref() as ILookup?
+            val stateAtom = getState(proj)
 
             val buffer =
                 (stateAtom?.valAt(Keyword.intern("output-buffer"))) as StyledPrinter
@@ -61,7 +62,8 @@ class ReplFileEditorProvider : FileEditorProvider, DumbAware {
             edit = factory.createViewer(
                 buffer.getEditor().document,
                 proj,
-                EditorKind.CONSOLE)
+                EditorKind.CONSOLE
+            )
 
             edit?.let {
                 it.settings.isLineMarkerAreaShown = false
@@ -98,10 +100,12 @@ class ReplFileEditorProvider : FileEditorProvider, DumbAware {
                         editor.markupModel.removeAllHighlighters()
                         buffer.getEditor().markupModel.allHighlighters.forEach {
                             if (it.endOffset <= editor.document.textLength) {
-                                editor.markupModel.addRangeHighlighter(it.startOffset,
+                                editor.markupModel.addRangeHighlighter(
+                                    it.startOffset,
                                     it.endOffset,
                                     it.layer,
-                                    it.getTextAttributes(EditorColorsManager.getInstance().globalScheme), it.targetArea)
+                                    it.getTextAttributes(EditorColorsManager.getInstance().globalScheme), it.targetArea
+                                )
                             }
                         }
                         EditorUtil.scrollToTheEnd(editor)
@@ -111,7 +115,7 @@ class ReplFileEditorProvider : FileEditorProvider, DumbAware {
         }
 
         override fun getFile(): VirtualFile? {
-            val stateAtom = proj?.let { cursive.repl.activeReplState(it)?.deref() } as ILookup?
+            val stateAtom = proj?.let { getState(it) }
             return ((stateAtom?.valAt(Keyword.intern("console"))) as ClojureConsole?)?.clojureVirtualFile
         }
 

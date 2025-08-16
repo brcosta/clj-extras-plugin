@@ -24,7 +24,7 @@ class CljKondoProcessRunner {
         process?.let { process ->
             val processHandler: OSProcessHandler =
                 ColoredProcessHandler(process, commandLine?.commandLineString, Charsets.UTF_8).apply {
-                    addProcessListener(object : ProcessAdapter() {
+                    addProcessListener(object : ProcessListener {
                         override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) =
                             when (outputType) {
                                 ProcessOutputTypes.STDERR -> {

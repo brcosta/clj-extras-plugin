@@ -2,6 +2,7 @@ package com.github.brcosta.cljstuffplugin.actions
 
 import clojure.lang.ILookup
 import clojure.lang.Keyword
+import com.github.brcosta.cljstuffplugin.util.getState
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.AnAction
@@ -16,7 +17,7 @@ open class OpenReplBufferAction : AnAction() {
         if (event.project != null) {
 
             val project = event.project!!
-            val stateAtom = cursive.repl.activeReplState(event.project!!)?.deref() as ILookup?
+            val stateAtom = getState(event.project!!)
 
             val outputBuffer = (stateAtom?.valAt(Keyword.intern("console"))) as ClojureConsole?
 

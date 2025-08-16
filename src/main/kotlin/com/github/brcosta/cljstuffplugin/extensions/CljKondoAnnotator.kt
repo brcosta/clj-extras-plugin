@@ -39,10 +39,8 @@ class CljKondoAnnotator : ExternalAnnotator<ExternalLintAnnotationInput, Externa
 
     private val separators = " )".toCharArray()
 
-    private val mapper: ObjectMapper =
-        ObjectMapper().registerModule(kotlinModule())
-         //   .registerModule(ParameterNamesModule())
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+    private val mapper: ObjectMapper = ObjectMapper().registerModule(kotlinModule())
+        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 
     override fun collectInformation(file: PsiFile): ExternalLintAnnotationInput? {
         return collectInformation(file, null)

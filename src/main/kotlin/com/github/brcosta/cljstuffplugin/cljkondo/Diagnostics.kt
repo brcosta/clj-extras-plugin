@@ -1,46 +1,44 @@
 package com.github.brcosta.cljstuffplugin.cljkondo
 
-import com.fasterxml.jackson.annotation.JsonIgnore
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 
 data class Diagnostics(
-    @JsonProperty("findings") val findings: List<Finding>,
-    @JsonProperty("summary") val summary: Summary?
+    @field:JsonProperty("findings") val findings: List<Finding>,
+    @field:JsonProperty("summary") val summary: Summary?
 )
 
 data class Finding(
-    @JsonProperty("row")
+    @field:JsonProperty("row")
     val row: Int,
-    @JsonProperty("end-row")
+    @field:JsonProperty("end-row")
     val endRow: Int,
-    @JsonProperty("col")
+    @field:JsonProperty("col")
     val col: Int,
-    @JsonProperty("end-col")
+    @field:JsonProperty("end-col")
     val endCol: Int,
-    @JsonProperty("level")
+    @field:JsonProperty("level")
     val level: String,
-    @JsonProperty("filename")
+    @field:JsonProperty("filename")
     val filename: String?,
-    @JsonProperty("class")
+    @field:JsonProperty("class")
     val clazz: String?,
-    @JsonProperty("message")
+    @field:JsonProperty("message")
     val message: String,
-    @JsonProperty("type")
+    @field:JsonProperty("type")
     val type: String,
 )
 
 data class Summary(
-    @JsonProperty("files")
+    @field:JsonProperty("files")
     val files: Int?,
-    @JsonProperty("type")
+    @field:JsonProperty("type")
     val type: String?,
-    @JsonProperty("error")
+    @field:JsonProperty("error")
     val error: Int?,
-    @JsonProperty("warning")
+    @field:JsonProperty("warning")
     val warning: Int?,
-    @JsonProperty("info")
+    @field:JsonProperty("info")
     val info: Int?,
-    @JsonProperty("duration")
+    @field:JsonProperty("duration")
     val duration: Int?
 )
