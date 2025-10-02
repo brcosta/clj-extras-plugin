@@ -19,6 +19,7 @@
         <externalAnnotator language="Clojure" implementationClass="com.github.brcosta.cljstuffplugin.extensions.CljKondoAnnotator" />
 
         <colorSettingsPage implementation="com.github.brcosta.cljstuffplugin.extensions.ClojureColorsAndFontsPageEx"/>
+        <highlightVisitor implementation="com.github.brcosta.cljstuffplugin.extensions.codeInsight.daemon.ClojureRainbowVisitor"/>
 
         <additionalTextAttributes file="colors/ClojureStuffDefaultColors.xml" scheme="Default"/>
         <additionalTextAttributes file="colors/ClojureStuffDarculaColors.xml" scheme="Darcula"/>
